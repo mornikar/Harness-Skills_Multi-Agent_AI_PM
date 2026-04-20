@@ -2,7 +2,7 @@
 
 > pm-researcher 子Agent 的执行载体定义。
 > 设计参考：claw-code 的 Worker 生命周期 + 权限分层 + 工具最小化原则；
-> Hive 的目标注入 + 三角验证 + 三层洋葱模型。
+> 目标注入 + 三角验证 + 三层洋葱模型。
 
 ## 基本配置
 
@@ -36,16 +36,16 @@ allowed_tools:
   # 注意：不授予 execute_command（调研不需要执行命令）
 ```
 
-## Skill 加载策略（渐进式披露，参考 Hive）
+## Skill 加载策略（渐进式披露）
 
-| Skill | 路径 | 层级 | 加载时机 | 说明 |
-|-------|------|------|---------|------|
-| pm-researcher | `pm-researcher/SKILL.md` | Tier 1+2 | always | 核心行为规范 |
-| pm-researcher report-templates | `pm-researcher/references/report-templates.md` | Tier 3 | on_demand | 调研报告模板参考 |
-| Domain Skills | `~/.workbuddy/skills/{domain}/` | Tier 1+2 | 动态（Phase 3获取） | 如 web-search, github |
-| recovery-recipes | `shared/references/recovery-recipes.md` | Tier 3 | on_failure | 恢复配方 |
+| Skill                          | 路径                                             | 层级       | 加载时机          | 说明                   |
+| ------------------------------ | ---------------------------------------------- | -------- | ------------- | -------------------- |
+| pm-researcher                  | `pm-researcher/SKILL.md`                       | Tier 1+2 | always        | 核心行为规范               |
+| pm-researcher report-templates | `pm-researcher/references/report-templates.md` | Tier 3   | on_demand     | 调研报告模板参考             |
+| Domain Skills                  | `~/.workbuddy/skills/{domain}/`                | Tier 1+2 | 动态（Phase 3获取） | 如 web-search, github |
+| recovery-recipes               | `shared/references/recovery-recipes.md`        | Tier 3   | on_failure    | 恢复配方                 |
 
-## Skill 注入方式（三层 Prompt 洋葱，参考 Hive）
+## Skill 注入方式（三层 Prompt 洋葱）
 
 ```markdown
 # prompt 模板（orchestrator 按三层洋葱模型拼接后传给 task）
@@ -128,7 +128,7 @@ allowed_tools:
 communication:
   heartbeat_path: ".workbuddy/context_pool/progress/T{XXX}-heartbeat.md"
   project_heartbeat: ".workbuddy/HEARTBEAT.md"
-  
+
   notify_on:
     - event: complete
       message: |
@@ -148,19 +148,19 @@ communication:
         已完成: {已调研的方案}
         未完成: {缺少信息的方案}
         建议: {是否基于已有信息给出推荐}
-  
+
   recipient: "main"
 ```
 
 ## 适用任务类型
 
-| 任务类型 | 典型场景 | 额外Skills | 预估轮次 |
-|---------|---------|-----------|---------|
-| tech_research | 技术框架调研选型 | web-search, github | 40 |
-| competitive | 竞品分析 | web-search | 30 |
-| feasibility | 可行性评估 | web-search | 30 |
-| api_research | API文档查阅 | - | 25 |
-| best_practice | 最佳实践收集 | web-search | 30 |
+| 任务类型          | 典型场景     | 额外Skills           | 预估轮次 |
+| ------------- | -------- | ------------------ | ---- |
+| tech_research | 技术框架调研选型 | web-search, github | 40   |
+| competitive   | 竞品分析     | web-search         | 30   |
+| feasibility   | 可行性评估    | web-search         | 30   |
+| api_research  | API文档查阅  | -                  | 25   |
+| best_practice | 最佳实践收集   | web-search         | 30   |
 
 ---
 

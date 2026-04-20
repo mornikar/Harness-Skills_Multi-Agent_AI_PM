@@ -1,6 +1,6 @@
 # AI产品经理多Agent Skill体系
 
-> 基于 WorkBuddy/OpenClaw Skill 规范构建的 Multi-Agent 协作开发框架
+> 基于规范构建的 Multi-Agent 协作开发框架
 
 ## 架构概览
 
@@ -32,26 +32,31 @@
 ## 核心特性
 
 ### 1. 智能任务拆解
+
 - 自动分析需求依赖关系
 - 生成可并行执行的子任务
 - 动态分配任务给专业Agent
 
 ### 2. Skills 动态管理
+
 - 自动匹配任务所需 Skills
 - 本地 Skills 缓存复用
 - 缺失 Skills 自动下载
 
 ### 3. 上下文池（Context Pool）
+
 - 全局共享的项目上下文
 - 细粒度的访问权限控制
 - 版本化的决策记录
 
 ### 4. HEARTBEAT 状态追踪
+
 - 实时任务状态看板
 - 关键决策记录
 - 风险与问题追踪
 
 ### 5. 结果自动整合
+
 - 多 Agent 输出合并
 - 一致性自动检查
 - 完整交付物生成
@@ -148,6 +153,7 @@ pm-orchestrator 触发
 ## 使用场景
 
 ### 场景1：从0到1开发新产品
+
 ```
 用户：帮我做一个个人知识管理工具，支持Markdown编辑和全文搜索
 
@@ -160,6 +166,7 @@ pm-orchestrator:
 ```
 
 ### 场景2：功能迭代
+
 ```
 用户：给现有App添加用户认证功能
 
@@ -171,6 +178,7 @@ pm-orchestrator:
 ```
 
 ### 场景3：技术重构
+
 ```
 用户：把项目从Vue2迁移到Vue3
 
@@ -201,6 +209,7 @@ Copy-Item -Path "D:\Auxiliary_means\All_AI_Skills\AI_PM_SKills\*" `
 ### 3. 开始使用
 
 直接对 AI 说出你的需求：
+
 - "帮我做一个记账App"
 - "开发一个Markdown编辑器"
 - "实现用户认证功能"
@@ -208,6 +217,7 @@ Copy-Item -Path "D:\Auxiliary_means\All_AI_Skills\AI_PM_SKills\*" `
 ## 子Agent详情
 
 ### pm-researcher
+
 **职责**：技术调研、竞品分析、方案选型
 
 **触发词**：调研、对比、选型、分析、竞品、方案、评估
@@ -215,6 +225,7 @@ Copy-Item -Path "D:\Auxiliary_means\All_AI_Skills\AI_PM_SKills\*" `
 **输出**：调研报告（Markdown）、对比表格、推荐结论
 
 ### pm-coder
+
 **职责**：代码编写、调试修复、重构优化、测试编写
 
 **触发词**：编码、实现、开发、调试、修复、重构、代码
@@ -222,6 +233,7 @@ Copy-Item -Path "D:\Auxiliary_means\All_AI_Skills\AI_PM_SKills\*" `
 **输出**：可运行代码、单元测试、代码审查报告
 
 ### pm-writer
+
 **职责**：PRD撰写、技术文档、用户手册、CHANGELOG
 
 **触发词**：文档、PRD、撰写、编写、手册、说明、CHANGELOG
@@ -251,13 +263,13 @@ Copy-Item -Path "D:\Auxiliary_means\All_AI_Skills\AI_PM_SKills\*" `
 
 ### 访问权限
 
-| 文件 | orchestrator | 子Agent |
-|-----|-------------|---------|
-| product.md | 读写 | 只读 |
-| requirements.md | 读写 | 只读 |
-| decisions.md | 读写 | 只读 |
-| progress/*.md | 读写 | 读写 |
-| shared/* | 读写 | 读写 |
+| 文件              | orchestrator | 子Agent |
+| --------------- | ------------ | ------ |
+| product.md      | 读写           | 只读     |
+| requirements.md | 读写           | 只读     |
+| decisions.md    | 读写           | 只读     |
+| progress/*.md   | 读写           | 读写     |
+| shared/*        | 读写           | 读写     |
 
 ## HEARTBEAT.md 格式
 
@@ -311,8 +323,8 @@ Copy-Item -Path "D:\Auxiliary_means\All_AI_Skills\AI_PM_SKills\*" `
 
 ## 版本历史
 
-| 版本 | 日期 | 变更 |
-|-----|------|------|
+| 版本   | 日期         | 变更               |
+| ---- | ---------- | ---------------- |
 | v1.0 | 2024-04-20 | 初始版本，包含4个核心Agent |
 
 ## 许可证

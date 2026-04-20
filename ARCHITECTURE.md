@@ -63,15 +63,15 @@
 
 ### 1.2 核心概念：Skill vs Harness
 
-| 维度 | Skill | Harness |
-|------|-------|---------|
-| **本质** | 知识包（SKILL.md + references/） | 执行载体（运行环境配置） |
-| **类比** | SOP 手册 | 带工具箱的工作台 |
-| **定义内容** | 角色定位、工作流程、输出模板、禁止事项 | spawn配置、工具绑定、通信协议、Skill加载策略 |
-| **文件位置** | `{agent}/SKILL.md` | `harnesses/{agent}-harness.md` |
-| **注入方式** | 通过 prompt 参数写入 | 通过 task 工具的参数配置 |
-| **生命周期** | 项目级（不随任务变化） | 任务级（每次 spawn 重新配置） |
-| **示例** | `pm-coder/SKILL.md` 定义"编码规范" | `coder-harness.md` 定义"mode=acceptEdits, max_turns=50" |
+| 维度       | Skill                        | Harness                                               |
+| -------- | ---------------------------- | ----------------------------------------------------- |
+| **本质**   | 知识包（SKILL.md + references/）  | 执行载体（运行环境配置）                                          |
+| **类比**   | SOP 手册                       | 带工具箱的工作台                                              |
+| **定义内容** | 角色定位、工作流程、输出模板、禁止事项          | spawn配置、工具绑定、通信协议、Skill加载策略                           |
+| **文件位置** | `{agent}/SKILL.md`           | `harnesses/{agent}-harness.md`                        |
+| **注入方式** | 通过 prompt 参数写入               | 通过 task 工具的参数配置                                       |
+| **生命周期** | 项目级（不随任务变化）                  | 任务级（每次 spawn 重新配置）                                    |
+| **示例**   | `pm-coder/SKILL.md` 定义"编码规范" | `coder-harness.md` 定义"mode=acceptEdits, max_turns=50" |
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -156,6 +156,7 @@
 ### 2.1 上下文池（Context Pool）
 
 #### 2.1.1 设计目标
+
 - 提供全局共享的项目上下文
 - 支持细粒度的访问控制
 - 实现版本化的变更追踪
@@ -172,15 +173,15 @@ interface ContextPool {
     techStack: TechStack;        // 技术栈
     architecture: Architecture;  // 架构设计
   };
-  
+
   // 动态决策记录
   decisions: Decision[];         // 关键决策历史
-  
+
   // 任务执行状态
   tasks: {
     [taskId: string]: TaskProgress;
   };
-  
+
   // 共享资源
   shared: {
     apiSchema?: OpenAPISpec;
@@ -203,23 +204,24 @@ interface TaskProgress {
 
 #### 2.1.3 文件映射
 
-| 数据类型 | 文件路径 | 格式 | 访问模式 | 维护者 |
-|---------|---------|------|---------|--------|
-| **项目记忆** | `.workbuddy/HEARTBEAT.md` | Markdown | orchestrator读写，子Agent只读 | orchestrator |
-| **任务记忆** | `context_pool/progress/T{XXX}-heartbeat.md` | Markdown | orchestrator读写，子Agent读写（仅自己的） | 各子Agent |
-| 产品定义 | `context_pool/product.md` | Markdown | 只读 | orchestrator |
-| 需求清单 | `context_pool/requirements.md` | Markdown | 只读 | orchestrator |
-| 技术栈 | `context_pool/tech_stack.md` | Markdown | 只读 | orchestrator/researcher |
-| 架构设计 | `context_pool/architecture.md` | Markdown | 只读 | orchestrator |
-| 决策记录 | `context_pool/decisions.md` | Markdown | 追加 | orchestrator |
-| API规范 | `context_pool/shared/api-schema.json` | JSON | 读写 | coder/writer |
-| 数据库 | `context_pool/shared/db-schema.sql` | SQL | 读写 | coder |
-| UI设计 | `context_pool/shared/ui-mockups/` | 图片/Figma | 读写 | coder/writer |
-| HEARTBEAT模板 | `shared/templates/heartbeat-template.md` | Markdown | 只读 | - |
+| 数据类型        | 文件路径                                        | 格式       | 访问模式                          | 维护者                     |
+| ----------- | ------------------------------------------- | -------- | ----------------------------- | ----------------------- |
+| **项目记忆**    | `.workbuddy/HEARTBEAT.md`                   | Markdown | orchestrator读写，子Agent只读       | orchestrator            |
+| **任务记忆**    | `context_pool/progress/T{XXX}-heartbeat.md` | Markdown | orchestrator读写，子Agent读写（仅自己的） | 各子Agent                 |
+| 产品定义        | `context_pool/product.md`                   | Markdown | 只读                            | orchestrator            |
+| 需求清单        | `context_pool/requirements.md`              | Markdown | 只读                            | orchestrator            |
+| 技术栈         | `context_pool/tech_stack.md`                | Markdown | 只读                            | orchestrator/researcher |
+| 架构设计        | `context_pool/architecture.md`              | Markdown | 只读                            | orchestrator            |
+| 决策记录        | `context_pool/decisions.md`                 | Markdown | 追加                            | orchestrator            |
+| API规范       | `context_pool/shared/api-schema.json`       | JSON     | 读写                            | coder/writer            |
+| 数据库         | `context_pool/shared/db-schema.sql`         | SQL      | 读写                            | coder                   |
+| UI设计        | `context_pool/shared/ui-mockups/`           | 图片/Figma | 读写                            | coder/writer            |
+| HEARTBEAT模板 | `shared/templates/heartbeat-template.md`    | Markdown | 只读                            | -                       |
 
 ### 2.2 HEARTBEAT 机制
 
 #### 2.2.1 设计目标
+
 - 实时追踪项目整体状态
 - 快速识别阻塞点和风险
 - 提供决策历史追溯
@@ -312,6 +314,7 @@ interface TaskProgress {
 ```
 
 **错误恢复流程**：
+
 ```
 任务出错
     │
@@ -323,17 +326,17 @@ interface TaskProgress {
 
 #### 2.2.5 更新触发条件
 
-| 事件类型 | 更新内容 | 触发者 | 更新位置 | 工具 |
-|---------|---------|--------|---------|------|
-| 任务状态变更 | 状态、进度、时间戳 | 子Agent | 任务HEARTBEAT | `replace_in_file` |
-| 任务状态变更 | 看板行更新 | orchestrator | 项目HEARTBEAT | `replace_in_file` |
-| 子Agent完成/阻塞 | 通知消息 | 子Agent | send_message | `send_message` |
-| 新决策产生 | 决策记录 | orchestrator | 项目HEARTBEAT | `replace_in_file` |
-| 关键发现 | 发现记录 | 子Agent | 任务HEARTBEAT | `replace_in_file` |
-| 风险出现 | 风险项、应对措施 | orchestrator/子Agent | 项目HEARTBEAT | `replace_in_file` |
-| 阻塞解除 | 阻塞项状态更新 | orchestrator | 项目HEARTBEAT | `replace_in_file` |
-| 里程碑达成 | 阶段完成标记 | orchestrator | 项目HEARTBEAT | `replace_in_file` |
-| 产出物生成 | 文件路径、说明 | 子Agent | 任务HEARTBEAT | `replace_in_file` |
+| 事件类型        | 更新内容      | 触发者                 | 更新位置         | 工具                |
+| ----------- | --------- | ------------------- | ------------ | ----------------- |
+| 任务状态变更      | 状态、进度、时间戳 | 子Agent              | 任务HEARTBEAT  | `replace_in_file` |
+| 任务状态变更      | 看板行更新     | orchestrator        | 项目HEARTBEAT  | `replace_in_file` |
+| 子Agent完成/阻塞 | 通知消息      | 子Agent              | send_message | `send_message`    |
+| 新决策产生       | 决策记录      | orchestrator        | 项目HEARTBEAT  | `replace_in_file` |
+| 关键发现        | 发现记录      | 子Agent              | 任务HEARTBEAT  | `replace_in_file` |
+| 风险出现        | 风险项、应对措施  | orchestrator/子Agent | 项目HEARTBEAT  | `replace_in_file` |
+| 阻塞解除        | 阻塞项状态更新   | orchestrator        | 项目HEARTBEAT  | `replace_in_file` |
+| 里程碑达成       | 阶段完成标记    | orchestrator        | 项目HEARTBEAT  | `replace_in_file` |
+| 产出物生成       | 文件路径、说明   | 子Agent              | 任务HEARTBEAT  | `replace_in_file` |
 
 #### 2.2.6 状态流转
 
@@ -369,12 +372,12 @@ interface TaskProgress {
 
 #### 2.3.1 Skills 分类
 
-| 类别 | 说明 | 示例 |
-|-----|------|------|
-| **Core Skills** | 子Agent核心能力 | pm-coder, pm-researcher |
-| **Domain Skills** | 领域特定技能 | vue3, react, electron |
-| **Tool Skills** | 工具集成 | github, notion, xlsx |
-| **Utility Skills** | 通用工具 | web-search, file-ops |
+| 类别                 | 说明         | 示例                      |
+| ------------------ | ---------- | ----------------------- |
+| **Core Skills**    | 子Agent核心能力 | pm-coder, pm-researcher |
+| **Domain Skills**  | 领域特定技能     | vue3, react, electron   |
+| **Tool Skills**    | 工具集成       | github, notion, xlsx    |
+| **Utility Skills** | 通用工具       | web-search, file-ops    |
 
 #### 2.3.2 Skills 匹配算法
 
@@ -384,24 +387,24 @@ def match_skills(task: Task) -> List[Skill]:
     根据任务类型和描述匹配所需Skills
     """
     required_skills = []
-    
+
     # 1. 基础Agent Skill
     required_skills.append(get_agent_skill(task.agent_type))
-    
+
     # 2. 根据任务类型匹配
     if task.type == "frontend":
         if "vue" in task.description.lower():
             required_skills.append(get_skill("vue3"))
         elif "react" in task.description.lower():
             required_skills.append(get_skill("react"))
-    
+
     # 3. 根据关键词匹配
     keywords = extract_keywords(task.description)
     for keyword in keywords:
         skill = find_skill_by_keyword(keyword)
         if skill:
             required_skills.append(skill)
-    
+
     # 4. 去重并排序
     return deduplicate_and_sort(required_skills)
 ```
@@ -522,34 +525,38 @@ payload:
 ### 3.1 Phase 1: 需求澄清
 
 #### 输入
+
 - 用户自然语言描述
 
 #### 处理
+
 1. **意图识别**：提取产品类型、核心功能、目标用户
 2. **范围界定**：明确In Scope / Out Scope
 3. **约束提取**：技术栈偏好、时间限制、质量要求
 
 #### 输出
+
 - `context_pool/product.md`
 - `context_pool/requirements.md`
 
 ### 3.2 Phase 2: 任务拆解
 
 #### 算法
+
 ```python
 def decompose_task(requirements: List[Requirement]) -> List[Task]:
     tasks = []
-    
+
     for req in requirements:
         # 1. 识别任务类型
         task_type = classify_task(req)
-        
+
         # 2. 确定执行Agent
         agent = select_agent(task_type)
-        
+
         # 3. 分析依赖关系
         dependencies = analyze_dependencies(req, requirements)
-        
+
         # 4. 创建任务
         task = Task(
             id=generate_task_id(),
@@ -560,25 +567,26 @@ def decompose_task(requirements: List[Requirement]) -> List[Task]:
             estimated_duration=estimate_duration(task_type, req.complexity)
         )
         tasks.append(task)
-    
+
     # 5. 拓扑排序，确保依赖顺序
     return topological_sort(tasks)
 ```
 
 #### 任务类型映射
 
-| 需求关键词 | 任务类型 | 目标Agent | 必需Skills |
-|-----------|---------|----------|-----------|
-| 调研、对比、选型 | research | pm-researcher | web-search |
-| 设计、架构、规划 | design | pm-orchestrator | - |
-| 前端、页面、UI | frontend | pm-coder | vue3/react |
-| 后端、API、数据库 | backend | pm-coder | fastapi/express |
-| 文档、PRD、说明 | documentation | pm-writer | markdown |
-| 测试、验证、检查 | testing | pm-coder | jest/pytest |
+| 需求关键词      | 任务类型          | 目标Agent         | 必需Skills        |
+| ---------- | ------------- | --------------- | --------------- |
+| 调研、对比、选型   | research      | pm-researcher   | web-search      |
+| 设计、架构、规划   | design        | pm-orchestrator | -               |
+| 前端、页面、UI   | frontend      | pm-coder        | vue3/react      |
+| 后端、API、数据库 | backend       | pm-coder        | fastapi/express |
+| 文档、PRD、说明  | documentation | pm-writer       | markdown        |
+| 测试、验证、检查   | testing       | pm-coder        | jest/pytest     |
 
 ### 3.3 Phase 3: Skills管理
 
 #### 流程（本地优先 → ClawHub补充 → 动态生成兜底）
+
 ```
 1. 收集所有任务所需Skills
 2. 检查本地Skills
@@ -599,6 +607,7 @@ def decompose_task(requirements: List[Requirement]) -> List[Task]:
 ### 3.4 Phase 4: 上下文池初始化
 
 #### 创建文件
+
 ```bash
 mkdir -p .workbuddy/context_pool/{progress,shared}
 touch .workbuddy/context_pool/{product,requirements,tech_stack,architecture,decisions}.md
@@ -606,6 +615,7 @@ touch .workbuddy/HEARTBEAT.md
 ```
 
 #### 初始化内容
+
 - `product.md`：从Phase 1提取的产品定义
 - `requirements.md`：用户故事格式的需求列表
 - `tech_stack.md`：初始为空，等待T001调研结果
@@ -616,6 +626,7 @@ touch .workbuddy/HEARTBEAT.md
 ### 3.5 Phase 4+5: 团队创建 + Harness 调度
 
 #### 并行策略（基于依赖关系分批）
+
 ```python
 # Step 1: 创建项目团队
 team_create(team_name="{project-team}", description="{项目描述}")
@@ -634,11 +645,11 @@ for level in levels:
             max_turns={agent_specific_turns},
             prompt="{Skill注入 + 任务描述 + 记忆要求}"
         )
-    
+
     # Step 4: 等待 send_message 通知
     # 子Agent完成/阻塞时自动通知
     # orchestrator 收到后读取子Agent HEARTBEAT 更新项目状态
-    
+
     # Step 5: 处理阻塞 + 解除下游依赖
     if has_blockers():
         handle_blockers()
@@ -646,20 +657,22 @@ for level in levels:
 
 #### 子Agent Harness Spawn 规范
 
-| 子Agent | subagent_name | mode | max_turns | Skill注入方式 |
-|---------|:---:|:---:|:---:|------|
-| pm-coder | code-explorer | acceptEdits | 50 | prompt 首行引导读取 SKILL.md |
-| pm-researcher | code-explorer | acceptEdits | 40 | prompt 首行引导读取 SKILL.md |
-| pm-writer | code-explorer | acceptEdits | 35 | prompt 首行引导读取 SKILL.md |
+| 子Agent        | subagent_name | mode        | max_turns | Skill注入方式              |
+| ------------- |:-------------:|:-----------:|:---------:| ---------------------- |
+| pm-coder      | code-explorer | acceptEdits | 50        | prompt 首行引导读取 SKILL.md |
+| pm-researcher | code-explorer | acceptEdits | 40        | prompt 首行引导读取 SKILL.md |
+| pm-writer     | code-explorer | acceptEdits | 35        | prompt 首行引导读取 SKILL.md |
 
 ### 3.6 Phase 6: 结果收集
 
 #### 收集机制
+
 1. **主动推送**：子Agent通过 `send_message(type="message", recipient="main")` 主动上报
 2. **被动拉取**：orchestrator 通过 `read_file` 读取子Agent HEARTBEAT
 3. **阻塞通知**：子Agent遇到阻塞立即 `send_message` 通知
 
 #### 验证规则
+
 - 输出格式是否符合约定
 - 文件路径是否正确
 - 依赖的共享数据是否更新
@@ -668,6 +681,7 @@ for level in levels:
 ### 3.7 Phase 7: 结果整合
 
 #### 整合步骤
+
 1. **收集所有交付物**
 2. **一致性检查**
    - API schema与代码实现是否一致
@@ -687,35 +701,36 @@ for level in levels:
 
 ### 4.1 子Agent失败
 
-| 失败类型 | 检测方式 | 处理策略 |
-|---------|---------|---------|
-| 执行超时 | 心跳超时 | 重试1次，仍失败则标记失败 |
-| 输出格式错误 | 验证失败 | 返回子Agent要求修正 |
-| 依赖缺失 | 运行时错误 | 补充依赖后重试 |
-| 逻辑错误 | 测试失败 | 返回子Agent修复 |
-| 资源不足 | 系统错误 | 扩容或降级处理 |
+| 失败类型   | 检测方式  | 处理策略          |
+| ------ | ----- | ------------- |
+| 执行超时   | 心跳超时  | 重试1次，仍失败则标记失败 |
+| 输出格式错误 | 验证失败  | 返回子Agent要求修正  |
+| 依赖缺失   | 运行时错误 | 补充依赖后重试       |
+| 逻辑错误   | 测试失败  | 返回子Agent修复    |
+| 资源不足   | 系统错误  | 扩容或降级处理       |
 
 ### 4.2 上下文冲突
 
-| 冲突类型 | 检测时机 | 解决策略 |
-|---------|---------|---------|
-| 写冲突 | 文件锁检测 | 乐观锁 + 合并策略 |
-| 版本冲突 | 提交时检测 | 人工介入或自动合并 |
-| 逻辑冲突 | 一致性检查时 | 回滚 + 重新执行 |
+| 冲突类型 | 检测时机   | 解决策略       |
+| ---- | ------ | ---------- |
+| 写冲突  | 文件锁检测  | 乐观锁 + 合并策略 |
+| 版本冲突 | 提交时检测  | 人工介入或自动合并  |
+| 逻辑冲突 | 一致性检查时 | 回滚 + 重新执行  |
 
 ### 4.3 网络/服务故障
 
-| 故障类型 | 影响 | 应对 |
-|---------|------|------|
+| 故障类型        | 影响          | 应对           |
+| ----------- | ----------- | ------------ |
 | Skills仓库不可达 | 无法下载新Skills | 使用本地缓存，记录待下载 |
-| 子Agent启动失败 | 任务无法执行 | 重试3次，失败后人工介入 |
-| 上下文池写入失败 | 状态丢失风险 | 本地备份 + 定期同步 |
+| 子Agent启动失败  | 任务无法执行      | 重试3次，失败后人工介入 |
+| 上下文池写入失败    | 状态丢失风险      | 本地备份 + 定期同步  |
 
-### 4.4 结构化恢复机制（新增，参考 claw-code Recovery Recipes）
+### 4.4 结构化恢复机制（新增）
 
 当子 Agent 遇到已知失败模式时，按以下 SOP 自动恢复：
 
 **恢复总则**：
+
 1. 分类失败类型（参考 `shared/references/recovery-recipes.md`）
 2. 查找对应的恢复配方
 3. 执行恢复动作（最多重试 1 次）
@@ -724,16 +739,16 @@ for level in levels:
 
 **失败分类与恢复配方**：
 
-| 分类码 | 失败类型 | 恢复动作 | 可自动恢复 |
-|--------|---------|---------|-----------|
-| `context_overflow` | 上下文窗口溢出 | 压缩写入 HEARTBEAT → 请求重启 | ✅ |
-| `dependency_missing` | 上游依赖未满足 | 标记 blocked → 通知 orchestrator | ❌ |
-| `file_conflict` | 文件冲突 | 读取最新版本 → 智能合并 | ✅ |
-| `tool_failure` | 工具调用失败 | 分析错误 → 等待后重试 | ✅ |
-| `network_timeout` | API/网络超时 | 等待后重试 | ✅ |
-| `skill_missing` | Skill 未找到 | 通知 orchestrator 补装 | ❌ |
-| `build_failure` | 编译/测试失败 | 分析错误 → 修复代码 | ✅ |
-| `permission_denied` | 权限不足 | 通知 orchestrator 人工介入 | ❌ |
+| 分类码                  | 失败类型      | 恢复动作                         | 可自动恢复 |
+| -------------------- | --------- | ---------------------------- | ----- |
+| `context_overflow`   | 上下文窗口溢出   | 压缩写入 HEARTBEAT → 请求重启        | ✅     |
+| `dependency_missing` | 上游依赖未满足   | 标记 blocked → 通知 orchestrator | ❌     |
+| `file_conflict`      | 文件冲突      | 读取最新版本 → 智能合并                | ✅     |
+| `tool_failure`       | 工具调用失败    | 分析错误 → 等待后重试                 | ✅     |
+| `network_timeout`    | API/网络超时  | 等待后重试                        | ✅     |
+| `skill_missing`      | Skill 未找到 | 通知 orchestrator 补装           | ❌     |
+| `build_failure`      | 编译/测试失败   | 分析错误 → 修复代码                  | ✅     |
+| `permission_denied`  | 权限不足      | 通知 orchestrator 人工介入         | ❌     |
 
 **恢复台账**：每次恢复尝试在 HEARTBEAT "遇到的问题" 区域记录：
 
@@ -742,7 +757,7 @@ for level in levels:
 |---|------|---------|---------|---------|------|------|
 ```
 
-### 4.5 部分成功支持（新增，参考 claw-code Partial Success）
+### 4.5 部分成功支持（新增）
 
 系统支持部分成功/部分失败状态，带有结构化降级报告：
 
@@ -758,7 +773,7 @@ fields:
   - suggestion: "建议接受部分交付，密码重置API作为后续任务"
 ```
 
-## 4.6 事件驱动通信协议（新增，参考 claw-code 事件优先原则）
+## 4.6 事件驱动通信协议（新增）
 
 ### 设计原则
 
@@ -782,15 +797,15 @@ message_envelope:
 
 ### 事件类型定义
 
-| 事件类型 | 必填字段 | 触发者 |
-|---------|---------|--------|
-| `task_complete` | task_id, status, deliverables, suggestions | 子 Agent |
-| `task_progress` | task_id, progress_pct, current_step | 子 Agent |
-| `task_blocked` | task_id, block_reason, needed_from | 子 Agent |
-| `task_failed` | task_id, error_kind, error_detail, recoverable | 子 Agent |
+| 事件类型                   | 必填字段                                                   | 触发者     |
+| ---------------------- | ------------------------------------------------------ | ------- |
+| `task_complete`        | task_id, status, deliverables, suggestions             | 子 Agent |
+| `task_progress`        | task_id, progress_pct, current_step                    | 子 Agent |
+| `task_blocked`         | task_id, block_reason, needed_from                     | 子 Agent |
+| `task_failed`          | task_id, error_kind, error_detail, recoverable         | 子 Agent |
 | `task_partial_success` | task_id, completed_items, incomplete_items, suggestion | 子 Agent |
-| `recovery_attempt` | task_id, recipe_id, attempt_count, result | 子 Agent |
-| `decision_request` | task_id, decision_description, options | 子 Agent |
+| `recovery_attempt`     | task_id, recipe_id, attempt_count, result              | 子 Agent |
+| `decision_request`     | task_id, decision_description, options                 | 子 Agent |
 
 ## 4.7 策略引擎（参考 claw-code + Hive）
 
@@ -831,11 +846,11 @@ policies:
 
 #### 核心概念
 
-| 要素 | 说明 |
-|------|------|
-| **success_criteria** | 加权成功标准，多维度衡量项目质量 |
-| **constraints** | 硬约束（违规立即升级）+ 软约束（偏好） |
-| **context** | 注入每次 LLM 调用的领域知识 |
+| 要素                   | 说明                   |
+| -------------------- | -------------------- |
+| **success_criteria** | 加权成功标准，多维度衡量项目质量     |
+| **constraints**      | 硬约束（违规立即升级）+ 软约束（偏好） |
+| **context**          | 注入每次 LLM 调用的领域知识     |
 
 #### Goal 生命周期
 
@@ -852,11 +867,11 @@ policies:
 
 #### 三层验证信号
 
-| 信号层 | 特点 | 执行者 | 检查内容 |
-|--------|------|--------|---------|
-| **确定性规则** | 零歧义、快速 | 子Agent（自验证） | 格式检查、编译/测试通过、关键词匹配 |
-| **语义评估** | 灵活但有幻觉风险 | orchestrator（验收） | 对比 Goal 的 success_criteria 加权打分 |
-| **人工判断** | 最高权威 | 用户（HITL） | 关键决策确认、交付审批 |
+| 信号层       | 特点       | 执行者              | 检查内容                            |
+| --------- | -------- | ---------------- | ------------------------------- |
+| **确定性规则** | 零歧义、快速   | 子Agent（自验证）      | 格式检查、编译/测试通过、关键词匹配              |
+| **语义评估**  | 灵活但有幻觉风险 | orchestrator（验收） | 对比 Goal 的 success_criteria 加权打分 |
+| **人工判断**  | 最高权威     | 用户（HITL）         | 关键决策确认、交付审批                     |
 
 > 详见：`harnesses/orchestrator-harness.md` — 三角验证模型
 
@@ -889,37 +904,37 @@ policies:
 
 > **核心理念**：控制 token 消耗，按需加载，避免一次性注入过多信息。
 
-| 层级 | 加载内容 | 时机 | Token 成本 |
-|------|---------|------|-----------|
-| **Tier 1 — Catalog** | name + description | spawn 时注入 prompt | ~50-100 tokens/个 |
-| **Tier 2 — Instructions** | 完整 SKILL.md | Agent 自主 read_file 激活 | <5000 tokens |
-| **Tier 3 — Resources** | 脚本、参考文档 | 指令中引用时按需 read_file | 因情况而异 |
+| 层级                        | 加载内容               | 时机                    | Token 成本         |
+| ------------------------- | ------------------ | --------------------- | ---------------- |
+| **Tier 1 — Catalog**      | name + description | spawn 时注入 prompt      | ~50-100 tokens/个 |
+| **Tier 2 — Instructions** | 完整 SKILL.md        | Agent 自主 read_file 激活 | <5000 tokens     |
+| **Tier 3 — Resources**    | 脚本、参考文档            | 指令中引用时按需 read_file    | 因情况而异            |
 
 > 详见：`harnesses/orchestrator-harness.md` — Skill 渐进式披露
 
-### 4.12 默认技能体系（新增，参考 Hive Default Skills）
+### 4.12 默认技能体系（新增）
 
 所有子Agent共享的 6 个运行时行为技能（详见 `shared/references/default-skills.md`）：
 
-| 默认技能 | 目的 | 注入点 |
-|---------|------|--------|
-| pm-note-taking | 防止丢失跟踪 | 系统提示 |
-| pm-progress-tracker | 防止任务跳过/丢弃 | 迭代边界 + 完成钩子 |
-| pm-context-preservation | 上下文快满时主动保存 | 系统提示 |
-| pm-quality-monitor | 定期自我评估质量 | 迭代边界 |
-| pm-error-recovery | 结构化恢复协议 | 系统提示 |
-| pm-consistency-guard | 产出物与约束一致 | 系统提示 + 完成钩子 |
+| 默认技能                    | 目的         | 注入点         |
+| ----------------------- | ---------- | ----------- |
+| pm-note-taking          | 防止丢失跟踪     | 系统提示        |
+| pm-progress-tracker     | 防止任务跳过/丢弃  | 迭代边界 + 完成钩子 |
+| pm-context-preservation | 上下文快满时主动保存 | 系统提示        |
+| pm-quality-monitor      | 定期自我评估质量   | 迭代边界        |
+| pm-error-recovery       | 结构化恢复协议    | 系统提示        |
+| pm-consistency-guard    | 产出物与约束一致   | 系统提示 + 完成钩子 |
 
 ### 4.13 边条件与条件路由（新增）
 
 子Agent间的数据流支持 4 种边条件：
 
-| 边类型 | 触发条件 | 使用场景 |
-|--------|---------|---------|
-| On Success | 源节点成功 | 正常流程推进 |
-| On Failure | 源节点失败 | 回退、错误恢复 |
-| Conditional | 表达式为真 | 调研结果驱动不同分支 |
-| Human Gate | 需要人工确认 | 架构决策、交付审批 |
+| 边类型         | 触发条件   | 使用场景       |
+| ----------- | ------ | ---------- |
+| On Success  | 源节点成功  | 正常流程推进     |
+| On Failure  | 源节点失败  | 回退、错误恢复    |
+| Conditional | 表达式为真  | 调研结果驱动不同分支 |
+| Human Gate  | 需要人工确认 | 架构决策、交付审批  |
 
 > 详见：`harnesses/orchestrator-harness.md` — 边条件与条件路由
 
@@ -942,12 +957,12 @@ budget:
 
 ### 4.15 子Agent委托机制（新增）
 
-| 委托规则 | 说明 |
-|---------|------|
-| **允许** | pm-coder → pm-researcher（编码时需调研） |
+| 委托规则   | 说明                                  |
+| ------ | ----------------------------------- |
+| **允许** | pm-coder → pm-researcher（编码时需调研）    |
 | **允许** | pm-writer → pm-researcher（撰写时需补充信息） |
-| **禁止** | pm-researcher 不得委托（调研是终端操作） |
-| **禁止** | 嵌套委托（A→B→C 不允许） |
+| **禁止** | pm-researcher 不得委托（调研是终端操作）         |
+| **禁止** | 嵌套委托（A→B→C 不允许）                     |
 
 > 详见：`harnesses/orchestrator-harness.md` — 子Agent委托机制
 
@@ -957,12 +972,12 @@ budget:
 
 #### 四阶段演化循环
 
-| 阶段 | 说明 |
-|------|------|
-| **Execute** | Worker Agent 按当前规范运行，产生 HEARTBEAT 日志 |
-| **Evaluate** | 对比 Goal 的 success_criteria，判断产出质量 |
+| 阶段           | 说明                                     |
+| ------------ | -------------------------------------- |
+| **Execute**  | Worker Agent 按当前规范运行，产生 HEARTBEAT 日志   |
+| **Evaluate** | 对比 Goal 的 success_criteria，判断产出质量      |
 | **Diagnose** | 从 HEARTBEAT 提取结构化失败数据（失败类型、恢复频率、信号不一致） |
-| **Improve** | 更新 SKILL.md / Harness / 恢复配方 / 策略引擎 |
+| **Improve**  | 更新 SKILL.md / Harness / 恢复配方 / 策略引擎    |
 
 #### 演化限制
 
@@ -977,16 +992,17 @@ budget:
 
 #### 四层监控体系
 
-| 层级 | 监控对象 | 检查方式 | 介入手段 |
-|------|---------|---------|---------|
-| **L1 存活检查** | 子Agent是否在运行 | HEARTBEAT 最后更新时间 | 超时 → 策略引擎 timeout_escalate |
-| **L2 进度检查** | 子Agent是否在推进 | 实际进度 vs 预期进度 | 进度停滞 → 主动询问或调整 |
-| **L3 产出质量检查** | 中间产物是否达标 | 确定性规则 + 语义评估 | 质量偏差 → 中断并调整方向 |
-| **L4 约束合规检查** | 产出是否违反护栏 | 逐项核对 hard/soft constraints | 硬约束违规 → 立即中断 |
+| 层级            | 监控对象        | 检查方式                       | 介入手段                       |
+| ------------- | ----------- | -------------------------- | -------------------------- |
+| **L1 存活检查**   | 子Agent是否在运行 | HEARTBEAT 最后更新时间           | 超时 → 策略引擎 timeout_escalate |
+| **L2 进度检查**   | 子Agent是否在推进 | 实际进度 vs 预期进度               | 进度停滞 → 主动询问或调整             |
+| **L3 产出质量检查** | 中间产物是否达标    | 确定性规则 + 语义评估               | 质量偏差 → 中断并调整方向             |
+| **L4 约束合规检查** | 产出是否违反护栏    | 逐项核对 hard/soft constraints | 硬约束违规 → 立即中断               |
 
 #### 健康度评分
 
 orchestrator 为每个子Agent 维护 0-100 的健康度评分，因子包括：
+
 - `progress_velocity`（进度速度，权重 0.3）
 - `heartbeat_freshness`（心跳新鲜度，权重 0.25）
 - `error_count`（错误计数，权重 0.2）
@@ -1019,23 +1035,23 @@ orchestrator 为每个子Agent 维护 0-100 的健康度评分，因子包括：
 
 #### 检查点类型
 
-| 类型 | 触发时机 | 恢复用途 |
-|------|---------|---------|
-| **项目快照** | Phase 完成时 | 整个项目回滚 |
-| **任务快照** | 子Agent里程碑完成时 | 单任务回滚 |
-| **决策快照** | 关键决策后 | 决策回溯 |
+| 类型       | 触发时机         | 恢复用途   |
+| -------- | ------------ | ------ |
+| **项目快照** | Phase 完成时    | 整个项目回滚 |
+| **任务快照** | 子Agent里程碑完成时 | 单任务回滚  |
+| **决策快照** | 关键决策后        | 决策回溯   |
 
 存储位置：`.workbuddy/checkpoints/`，按版本号管理，超出保留上限自动清理。
 
 #### 崩溃场景应对
 
-| 场景 | 恢复策略 |
-|------|---------|
-| 子Agent失联 | 任务快照恢复 → 重新 spawn |
-| orchestrator中断 | 项目快照恢复 → 重构上下文 |
-| 上下文溢出 | HEARTBEAT 已包含压缩状态 → 重启 |
-| 多Agent级联失败 | 最近项目快照全面回滚 |
-| 团队通道丢失 | team_create 重建 → 从快照恢复所有任务 |
+| 场景             | 恢复策略                       |
+| -------------- | -------------------------- |
+| 子Agent失联       | 任务快照恢复 → 重新 spawn          |
+| orchestrator中断 | 项目快照恢复 → 重构上下文             |
+| 上下文溢出          | HEARTBEAT 已包含压缩状态 → 重启     |
+| 多Agent级联失败     | 最近项目快照全面回滚                 |
+| 团队通道丢失         | team_create 重建 → 从快照恢复所有任务 |
 
 详见：`shared/references/checkpoint-recovery.md`
 
@@ -1045,12 +1061,12 @@ orchestrator 为每个子Agent 维护 0-100 的健康度评分，因子包括：
 
 #### 经验四级分类
 
-| 级别 | 名称 | 沉淀位置 | 触发条件 | 作用范围 |
-|------|------|---------|---------|---------|
-| **L1** | 微模式 | `shared/lessons-learned.md` | 同类问题 ≥2 次 | 当前项目 |
-| **L2** | 规则强化 | Harness 策略引擎 | 微模式被 ≥3 个项目验证 | 所有项目 |
-| **L3** | Skill增强 | SKILL.md / references/ | 需 Agent 遵守的行为规范 | 绑定该 Skill 的 Agent |
-| **L4** | 独立Skill | 新建 `pm-{name}/` | 跨领域通用 | 全局可用 |
+| 级别     | 名称      | 沉淀位置                        | 触发条件            | 作用范围              |
+| ------ | ------- | --------------------------- | --------------- | ----------------- |
+| **L1** | 微模式     | `shared/lessons-learned.md` | 同类问题 ≥2 次       | 当前项目              |
+| **L2** | 规则强化    | Harness 策略引擎                | 微模式被 ≥3 个项目验证   | 所有项目              |
+| **L3** | Skill增强 | SKILL.md / references/      | 需 Agent 遵守的行为规范 | 绑定该 Skill 的 Agent |
+| **L4** | 独立Skill | 新建 `pm-{name}/`             | 跨领域通用           | 全局可用              |
 
 #### 经验生命周期
 
@@ -1061,6 +1077,7 @@ orchestrator 为每个子Agent 维护 0-100 的健康度评分，因子包括：
 #### Phase 7.5 复盘流程
 
 orchestrator 在 Phase 7 整合交付后执行复盘：
+
 1. **数据收集**：扫描所有任务HEARTBEAT的问题区 + 恢复台账
 2. **模式识别**：聚类相似问题，识别三角验证不一致频率
 3. **经验分级**：新模式 → L1，已验证 → L2/L3，通用 → L4
@@ -1070,6 +1087,7 @@ orchestrator 在 Phase 7 整合交付后执行复盘：
 #### 与演化循环的关系
 
 本模块是 4.16 演化循环的落地实现：
+
 ```
 Execute → HEARTBEAT记录
 Evaluate → Phase 6 三角验证
@@ -1082,14 +1100,14 @@ Improve → L1-L4 分级沉淀
 > **设计参考**：Claude Code 的六大工程策略，适配 AI_PM_Skills 的 Multi-Agent 架构。
 > 将 Coder 从"接到任务就写代码"升级为"先规划后编码、权限分级管控、钩子自动验证"。
 
-| 策略 | 核心理念 | 关键机制 |
-|------|---------|---------|
-| **规划优先管制** | 拒绝"上来就干" | Phase A探索→plan.md→审批→Phase C编码 |
-| **上下文工程** | 上下文是有限内存 | L1常驻≤3000 + L2工作集≤15000 + L3冷引用 |
-| **意图-执行解耦** | Layer 0 意图解析 | 歧义消除→范围锚定→风险预判→plan.md |
-| **风险分级权限** | 操作危险度动态设卡 | 绿灯自主/黄灯通知/红灯审批/禁区禁止 |
-| **交接棒机制** | 长任务无缝续接 | HANDOFF.md + orchestrator重新spawn |
-| **事件驱动钩子** | 确定性规则约束AI行为 | 9个H1-H9钩子覆盖全生命周期 |
+| 策略          | 核心理念         | 关键机制                             |
+| ----------- | ------------ | -------------------------------- |
+| **规划优先管制**  | 拒绝"上来就干"     | Phase A探索→plan.md→审批→Phase C编码   |
+| **上下文工程**   | 上下文是有限内存     | L1常驻≤3000 + L2工作集≤15000 + L3冷引用  |
+| **意图-执行解耦** | Layer 0 意图解析 | 歧义消除→范围锚定→风险预判→plan.md           |
+| **风险分级权限**  | 操作危险度动态设卡    | 绿灯自主/黄灯通知/红灯审批/禁区禁止              |
+| **交接棒机制**   | 长任务无缝续接      | HANDOFF.md + orchestrator重新spawn |
+| **事件驱动钩子**  | 确定性规则约束AI行为  | 9个H1-H9钩子覆盖全生命周期                 |
 
 > 详见：`harnesses/coder-harness.md`
 
@@ -1120,11 +1138,11 @@ Improve → L1-L4 分级沉淀
 └──────────────────────────────────────────────────────────────┘
 ```
 
-| 闭环 | 作用 | 代表组件 | 执行者 |
-|------|------|---------|-------|
-| **Guides 前馈** | 提高"一次做对"的概率 | SKILL.md、Goal、code-standards、review-protocol | — |
-| **Sensors 反馈** | 发现偏差并自我修正 | 计算型H1-H9钩子、关键词匹配 | Coder |
-| **Sensors 反馈** | 语义级验收审查 | 语义评估、Spec深度对照 | Orchestrator |
+| 闭环             | 作用          | 代表组件                                         | 执行者          |
+| -------------- | ----------- | -------------------------------------------- | ------------ |
+| **Guides 前馈**  | 提高"一次做对"的概率 | SKILL.md、Goal、code-standards、review-protocol | —            |
+| **Sensors 反馈** | 发现偏差并自我修正   | 计算型H1-H9钩子、关键词匹配                             | Coder        |
+| **Sensors 反馈** | 语义级验收审查     | 语义评估、Spec深度对照                                | Orchestrator |
 
 **分工原因**：LLM 无法真正自我审查逻辑错误，自己审查自己不靠谱。
 **分工设计**：Coder 负责计算型检查，推理型审查由 orchestrator 验收时通过三角验证执行。
@@ -1162,13 +1180,13 @@ Stage 1: 功能完整性自检（轻量关键词匹配）
               └───────────────────────────────────┘
 ```
 
-| 约束 | 说明 |
-|------|------|
-| Stage 1 不通过则阻断 Stage 2 | 功能完整性是前提 |
-| 每个 Task 完成后立即审查 | 不攒到 Phase 结束 |
-| Stage 1/2 由 Coder 自检 | 计算型检查 + 轻量关键词匹配 |
-| Stage 3 由 Orchestrator 验收 | 语义级评估，三角验证第二层 |
-| 优先级：设计图 > 设计规范 > 需求文档 > 代码 | 文档优先于实现 |
+| 约束                         | 说明              |
+| -------------------------- | --------------- |
+| Stage 1 不通过则阻断 Stage 2     | 功能完整性是前提        |
+| 每个 Task 完成后立即审查            | 不攒到 Phase 结束    |
+| Stage 1/2 由 Coder 自检       | 计算型检查 + 轻量关键词匹配 |
+| Stage 3 由 Orchestrator 验收  | 语义级评估，三角验证第二层   |
+| 优先级：设计图 > 设计规范 > 需求文档 > 代码 | 文档优先于实现         |
 
 > 详见：`pm-coder/references/code-review-protocol.md`
 
@@ -1176,12 +1194,12 @@ Stage 1: 功能完整性自检（轻量关键词匹配）
 
 > **设计参考**：毒舌产品经理 4.0 的"系统性调试模式（Bug Fixer 设计模式）"。
 
-| 阶段 | 核心活动 | 关键原则 |
-|------|---------|---------|
-| **Phase 1: 收集证据** | 读错误信息→判断稳定性→检查变更→追踪数据流 | 不只看摘要 |
-| **Phase 2: 分析模式** | 找相似正常功能→识别差异→排除法缩小范围 | 对比找线索 |
-| **Phase 3: 假设验证** | 形成最多3个假设→最小改动验证 | 不猜不试 |
-| **Phase 4: 实施修复** | 一次只改一处→编译→功能→回归→清理 | 一次只改一处 |
+| 阶段                | 核心活动                   | 关键原则   |
+| ----------------- | ---------------------- | ------ |
+| **Phase 1: 收集证据** | 读错误信息→判断稳定性→检查变更→追踪数据流 | 不只看摘要  |
+| **Phase 2: 分析模式** | 找相似正常功能→识别差异→排除法缩小范围   | 对比找线索  |
+| **Phase 3: 假设验证** | 形成最多3个假设→最小改动验证        | 不猜不试   |
+| **Phase 4: 实施修复** | 一次只改一处→编译→功能→回归→清理     | 一次只改一处 |
 
 **核心原则：** 不猜不试、一次只改一处、必须回归验证。
 **止损机制：** 同一 bug 经 2 轮仍未修复 → 立即停止，升级 orchestrator 介入。
@@ -1222,6 +1240,7 @@ actions:
 ### 5.3 插件机制
 
 预留扩展点：
+
 - 自定义任务拆解策略
 - 自定义Skills源
 - 自定义结果整合器

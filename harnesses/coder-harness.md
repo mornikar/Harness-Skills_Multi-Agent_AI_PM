@@ -4,7 +4,7 @@
 > 设计参考：claw-code 的 Worker 生命周期 + 权限分层 + 工具最小化原则；
 > Hive 的目标注入 + 三角验证 + 三层洋葱模型；
 > Claude Code 的规划管制 + 上下文工程 + 风险分级权限 + 交接棒 + 事件驱动钩子；
-> 毒舌产品经理 4.0 的 Guides/Sensors 双闭环 + 两阶段 Code Review + 系统性调试 SOP。
+>  Guides/Sensors 双闭环 + 两阶段 Code Review + 系统性调试 SOP。
 
 ## 基本配置
 
@@ -37,14 +37,14 @@ spawn_config:
 
 **在 Agent 行动之前注入标准和方法论，提高一次做对的概率。**
 
-| 组件 | 对应文件 | 作用 |
-|------|---------|------|
-| 角色身份 | SKILL.md Layer 1 | "你是谁、能做什么" |
-| 目标约束 | Goal success_criteria | "要达到什么标准" |
-| 工作流程 | SKILL.md Steps | "按什么步骤做" |
-| 编码标准 | references/code-standards.md | "代码应该长什么样" |
-| 审查协议 | references/code-review-protocol.md | "交付前要过什么关" |
-| 调试 SOP | references/debugging-protocol.md | "出 Bug 怎么修" |
+| 组件     | 对应文件                               | 作用          |
+| ------ | ---------------------------------- | ----------- |
+| 角色身份   | SKILL.md Layer 1                   | "你是谁、能做什么"  |
+| 目标约束   | Goal success_criteria              | "要达到什么标准"   |
+| 工作流程   | SKILL.md Steps                     | "按什么步骤做"    |
+| 编码标准   | references/code-standards.md       | "代码应该长什么样"  |
+| 审查协议   | references/code-review-protocol.md | "交付前要过什么关"  |
+| 调试 SOP | references/debugging-protocol.md   | "出 Bug 怎么修" |
 
 ### 闭环二：Sensors（反馈控制）
 
@@ -52,13 +52,13 @@ spawn_config:
 
 > ⚠️ 设计变更：推理型传感器由 orchestrator 在验收时执行，Coder 只负责计算型传感器。
 
-| 组件 | 类型 | 作用 | 执行者 |
-|------|------|------|-------|
-| H1-H9 钩子 | 计算型传感器 | 确定性检查（编译/测试/格式/完整性） | Coder |
-| Stage 1 关键词匹配 | 轻量自检 | 功能完整性轻量检查 | Coder |
-| Stage 2 H7/H8/H9 | 计算型检查 | 代码质量检查（不含语义评估） | Coder |
-| 语义评估 | 推理型传感器 | Spec 深度对照 + 代码质量语义审查 | Orchestrator |
-| 健康度自评 | 推理型传感器 | 进度/风险感知 | Coder |
+| 组件               | 类型     | 作用                   | 执行者          |
+| ---------------- | ------ | -------------------- | ------------ |
+| H1-H9 钩子         | 计算型传感器 | 确定性检查（编译/测试/格式/完整性）  | Coder        |
+| Stage 1 关键词匹配    | 轻量自检   | 功能完整性轻量检查            | Coder        |
+| Stage 2 H7/H8/H9 | 计算型检查  | 代码质量检查（不含语义评估）       | Coder        |
+| 语义评估             | 推理型传感器 | Spec 深度对照 + 代码质量语义审查 | Orchestrator |
+| 健康度自评            | 推理型传感器 | 进度/风险感知              | Coder        |
 
 ### Sensors 分类
 
@@ -614,9 +614,9 @@ handoff_procedure:
 
 ## 模块六：事件驱动钩子（Event-Driven Hooks）
 
-> **核心理念**：用确定性的检查规则，约束非确定性的 AI 行为。
+> **核心理念*：用确定性的检查规则，约束非确定性的 AI 行为。
 > 在 Agent 执行生命周期的关键节点，自动触发预定义的检查脚本。
-> 参考 Claude Code 的 Hooks 系统。
+> 
 
 ### 钩子定义
 
@@ -827,20 +827,20 @@ allowed_tools:
   # 超红灯：workspace 之外的文件操作、全局包安装等 → 禁止
 ```
 
-## Skill 加载策略（渐进式披露，参考 Hive）
+## Skill 加载策略（渐进式披露）
 
-| Skill | 路径 | 层级 | 加载时机 | 说明 |
-|-------|------|------|---------|------|
-| pm-coder | `pm-coder/SKILL.md` | Tier 1+2 | always | 核心行为规范 |
-| pm-coder heartbeat-ops | `pm-coder/references/heartbeat-ops.md` | Tier 3 | on_demand | HEARTBEAT操作详细规范 |
-| pm-coder code-standards | `pm-coder/references/code-standards.md` | Tier 3 | on_demand | 编码标准参考 |
-| pm-coder acceptance-criteria | `pm-coder/references/acceptance-criteria.md` | Tier 3 | on_demand | 验收标准清单 |
-| pm-coder handoff-protocol | `pm-coder/references/handoff-protocol.md` | Tier 3 | on_handoff | 交接协议 |
-| pm-coder hooks-specification | `pm-coder/references/hooks-specification.md` | Tier 3 | on_demand | 钩子详细规范 |
-| pm-coder code-review-protocol | `pm-coder/references/code-review-protocol.md` | Tier 3 | on_review | 两阶段Code Review |
-| pm-coder debugging-protocol | `pm-coder/references/debugging-protocol.md` | Tier 3 | on_debug | 四阶段调试SOP |
-| Domain Skills | `~/.workbuddy/skills/{domain}/` | Tier 1+2 | 动态 | 如 vue3, electron, fastapi |
-| recovery-recipes | `shared/references/recovery-recipes.md` | Tier 3 | on_failure | 恢复配方 |
+| Skill                         | 路径                                            | 层级       | 加载时机       | 说明                        |
+| ----------------------------- | --------------------------------------------- | -------- | ---------- | ------------------------- |
+| pm-coder                      | `pm-coder/SKILL.md`                           | Tier 1+2 | always     | 核心行为规范                    |
+| pm-coder heartbeat-ops        | `pm-coder/references/heartbeat-ops.md`        | Tier 3   | on_demand  | HEARTBEAT操作详细规范           |
+| pm-coder code-standards       | `pm-coder/references/code-standards.md`       | Tier 3   | on_demand  | 编码标准参考                    |
+| pm-coder acceptance-criteria  | `pm-coder/references/acceptance-criteria.md`  | Tier 3   | on_demand  | 验收标准清单                    |
+| pm-coder handoff-protocol     | `pm-coder/references/handoff-protocol.md`     | Tier 3   | on_handoff | 交接协议                      |
+| pm-coder hooks-specification  | `pm-coder/references/hooks-specification.md`  | Tier 3   | on_demand  | 钩子详细规范                    |
+| pm-coder code-review-protocol | `pm-coder/references/code-review-protocol.md` | Tier 3   | on_review  | 两阶段Code Review            |
+| pm-coder debugging-protocol   | `pm-coder/references/debugging-protocol.md`   | Tier 3   | on_debug   | 四阶段调试SOP                  |
+| Domain Skills                 | `~/.workbuddy/skills/{domain}/`               | Tier 1+2 | 动态         | 如 vue3, electron, fastapi |
+| recovery-recipes              | `shared/references/recovery-recipes.md`       | Tier 3   | on_failure | 恢复配方                      |
 
 ## Skill 注入方式（三层 Prompt 洋葱，增强版）
 
@@ -1022,14 +1022,14 @@ communication:
 
 ## 适用任务类型
 
-| 任务类型 | 典型场景 | 额外Skills | 预估轮次 |
-|---------|---------|-----------|---------|
-| frontend | Vue3/React页面开发 | vue3, react, electron | 50 |
-| backend | API/服务端开发 | fastapi, express, prisma | 50 |
-| database | 数据库设计与实现 | sql, mongodb | 30 |
-| testing | 单元/集成测试 | jest, pytest | 30 |
-| debugging | Bug修复 | 视具体项目而定 | 30 |
-| refactoring | 代码重构 | 视具体项目而定 | 40 |
+| 任务类型        | 典型场景           | 额外Skills                 | 预估轮次 |
+| ----------- | -------------- | ------------------------ | ---- |
+| frontend    | Vue3/React页面开发 | vue3, react, electron    | 50   |
+| backend     | API/服务端开发      | fastapi, express, prisma | 50   |
+| database    | 数据库设计与实现       | sql, mongodb             | 30   |
+| testing     | 单元/集成测试        | jest, pytest             | 30   |
+| debugging   | Bug修复          | 视具体项目而定                  | 30   |
+| refactoring | 代码重构           | 视具体项目而定                  | 40   |
 
 ## 与其他模块的协作关系
 

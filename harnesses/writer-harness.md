@@ -2,7 +2,7 @@
 
 > pm-writer 子Agent 的执行载体定义。
 > 设计参考：claw-code 的 Worker 生命周期 + 权限分层 + 工具最小化原则；
-> Hive 的目标注入 + 三角验证 + 三层洋葱模型。
+> 目标注入 + 三角验证 + 三层洋葱模型。
 
 ## 基本配置
 
@@ -34,16 +34,16 @@ allowed_tools:
   # 注意：不授予 web_search / execute_command（文档撰写不需要）
 ```
 
-## Skill 加载策略（渐进式披露，参考 Hive）
+## Skill 加载策略（渐进式披露）
 
-| Skill | 路径 | 层级 | 加载时机 | 说明 |
-|-------|------|------|---------|------|
-| pm-writer | `pm-writer/SKILL.md` | Tier 1+2 | always | 核心行为规范 |
-| pm-writer doc-templates | `pm-writer/references/doc-templates.md` | Tier 3 | on_demand | 文档模板参考 |
-| Domain Skills | `~/.workbuddy/skills/{domain}/` | Tier 1+2 | 动态（Phase 3获取） | 如 docx, notion, pptx |
-| recovery-recipes | `shared/references/recovery-recipes.md` | Tier 3 | on_failure | 恢复配方 |
+| Skill                   | 路径                                      | 层级       | 加载时机          | 说明                   |
+| ----------------------- | --------------------------------------- | -------- | ------------- | -------------------- |
+| pm-writer               | `pm-writer/SKILL.md`                    | Tier 1+2 | always        | 核心行为规范               |
+| pm-writer doc-templates | `pm-writer/references/doc-templates.md` | Tier 3   | on_demand     | 文档模板参考               |
+| Domain Skills           | `~/.workbuddy/skills/{domain}/`         | Tier 1+2 | 动态（Phase 3获取） | 如 docx, notion, pptx |
+| recovery-recipes        | `shared/references/recovery-recipes.md` | Tier 3   | on_failure    | 恢复配方                 |
 
-## Skill 注入方式（三层 Prompt 洋葱，参考 Hive）
+## Skill 注入方式（三层 Prompt 洋葱）
 
 ```markdown
 # prompt 模板（orchestrator 按三层洋葱模型拼接后传给 task）
@@ -133,7 +133,7 @@ allowed_tools:
 communication:
   heartbeat_path: ".workbuddy/context_pool/progress/T{XXX}-heartbeat.md"
   project_heartbeat: ".workbuddy/HEARTBEAT.md"
-  
+
   notify_on:
     - event: complete
       message: |
@@ -153,20 +153,20 @@ communication:
         已完成: {已撰写完成的章节}
         待补充: {缺少素材无法完成的章节}
         建议: {是否接受部分交付}
-  
+
   recipient: "main"
 ```
 
 ## 适用任务类型
 
-| 任务类型 | 典型场景 | 额外Skills | 预估轮次 |
-|---------|---------|-----------|---------|
-| prd | 产品需求文档 | docx, notion | 35 |
-| tech_doc | 技术设计文档 | markdown, mermaid | 35 |
-| api_doc | API接口文档 | openapi, swagger | 30 |
-| user_manual | 用户手册/使用说明 | docx, pdf | 30 |
-| presentation | 汇报材料/PPT | pptx | 25 |
-| changelog | CHANGELOG/发布说明 | markdown | 20 |
+| 任务类型         | 典型场景           | 额外Skills          | 预估轮次 |
+| ------------ | -------------- | ----------------- | ---- |
+| prd          | 产品需求文档         | docx, notion      | 35   |
+| tech_doc     | 技术设计文档         | markdown, mermaid | 35   |
+| api_doc      | API接口文档        | openapi, swagger  | 30   |
+| user_manual  | 用户手册/使用说明      | docx, pdf         | 30   |
+| presentation | 汇报材料/PPT       | pptx              | 25   |
+| changelog    | CHANGELOG/发布说明 | markdown          | 20   |
 
 ---
 
