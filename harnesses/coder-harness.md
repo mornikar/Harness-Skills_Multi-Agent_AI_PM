@@ -1,6 +1,7 @@
-# Coder Harness 定义
+# Coder Harness 定义（v2 架构重构版）
 
 > pm-coder 子Agent 的执行载体定义。
+> v2 架构变革：coder 由 pm-runner 调度，开发必须对齐原型设计（pm-designer 的产出）。
 > 设计参考：claw-code 的 Worker 生命周期 + 权限分层 + 工具最小化原则；
 > Hive 的目标注入 + 三角验证 + 三层洋葱模型；
 > Claude Code 的规划管制 + 上下文工程 + 风险分级权限 + 交接棒 + 事件驱动钩子；
@@ -15,12 +16,13 @@ description: |
   编程执行子Agent。负责代码编写、调试、重构、测试。
   通过 task 工具以 Team Mode spawn，加入项目团队协作。
   内置"先规划后编码"管制、风险分级权限、自动质量钩子。
+  v2 新增：开发必须对齐原型设计。
 
 spawn_config:
   subagent_name: "code-explorer"    # 内置 subagent 类型（代码探索+编写）
   mode: "acceptEdits"               # 自动接受文件编辑
   max_turns: 50                     # 单任务最多50轮
-  # name 和 team_name 由 orchestrator 动态填入
+  # name 和 team_name 由 pm-runner 动态填入
   # name: "coder-T{XXX}"
   # team_name: "{project-team}"
 ```
