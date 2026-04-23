@@ -1,0 +1,58 @@
+# full-pipeline 编排模板
+
+name: full-pipeline
+description: "全链路6阶段开发 — 从需求到交付（v2 完整流程的 v3 编排化）"
+trigger_words: ["从0开发", "做个App", "搭建系统", "MVP开发", "开发一个产品", "从0到1", "完整开发"]
+
+skills_required:
+  - pm-backlog-manager   # Phase 0
+  - pm-analyst           # Phase 1
+  - pm-planner           # Phase 1
+  - pm-designer          # Phase 2（并行）
+  - pm-runner            # Phase 3
+  - pm-coder             # Phase 3（runner调度）
+  - pm-researcher        # Phase 3（runner调度）
+  - pm-writer            # Phase 3（runner调度）
+
+flow:
+  phase_0:
+    agent: pm-backlog-manager
+    input: user_requirements
+    context_level: MINIMAL
+    output: [backlog.md, mvp-definition.md]
+    hitl_gate: "MVP范围需用户确认"
+
+  phase_1:
+    parallel: false
+    sequence:
+      - agent: pm-analyst
+        input: [backlog.md, mvp-definition.md]
+        context_level: PARTIAL
+        output: [product.md, requirements.md, goal.md]
+      - agent: pm-planner
+        input: [goal.md, requirements.md]
+        context_level: FULL
+        output: [tasks.md, modules.md, dependency-dag.md, batch-delivery-plan.md]
+
+  phase_2_3_parallel:
+    parallel: true
+    branches:
+      - agent: pm-designer
+        input: [goal.md, requirements.md, modules.md]
+        context_level: FULL
+        output: [prototype/, component-tree.md]
+        note: "原型完成后成为 Phase 3 方向指标"
+      - agent: pm-runner
+        input: [tasks.md, modules.md, dependency-dag.md]
+        context_level: FULL
+        output: [code/]
+        spawns: [pm-coder, pm-researcher, pm-writer]
+
+  phase_4:
+    type: "kickback_loop"
+    condition: "验收不通过 → 打回指定模块修复"
+    max_iterations: 3
+
+  phase_5:
+    type: "integration_and_delivery"
+    deliver: "整合所有产出物 + 复盘报告"

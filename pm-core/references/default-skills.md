@@ -1,6 +1,7 @@
 # 默认技能规范（Default Skills，参考 Hive）
 
-> 所有子Agent共享的运行时行为技能，编码到每次 spawn 的 prompt 中。
+> 路径变量和操作映射见 pm-core/platform-adapter.md。
+> 所有子Agent共享的运行时行为技能，编码到每次创建 Agent 的 prompt 中。
 > 与 Domain Skills（vue3、electron 等）不同，默认技能是**行为纪律**，不是领域知识。
 > 参考 Hive 的 6 个默认技能，适配 AI_PM_Skills 的 Markdown 规范。
 
@@ -12,7 +13,7 @@
 
 | 注入点 | 时机 | 说明 |
 |--------|------|------|
-| **系统提示注入** | 子 Agent spawn 时 | 附加到 prompt 的 Layer 1 Identity |
+| **系统提示注入** | 子 Agent 创建时 | 附加到 prompt 的 Layer 1 Identity |
 | **迭代边界回调** | 子 Agent 自验证时 | 质量检查、进度评估 |
 | **节点完成钩子** | 子 Agent 完成任务时 | 完整性检查、交接摘要 |
 | **阶段转换钩子** | orchestrator 切换批次时 | 上下文传递、笔记持久化 |
@@ -26,7 +27,7 @@
 **目的**：防止 Agent 在长任务中丢失跟踪。
 
 **行为规范**：
-- 每完成一个子步骤，用 `replace_in_file` 更新 HEARTBEAT 的进度区
+- 每完成一个子步骤，修改 HEARTBEAT 的进度区
 - 笔记格式：`- [x] {子步骤描述}（{HH:mm}）`
 - 未完成的子步骤：`- [ ] {子步骤描述}`
 - 遇到阻塞：`- [!] {阻塞描述} ← 需要什么`
@@ -62,11 +63,11 @@
   - [ ] 未完成步骤
   - [ ] 关键决策
   - [ ] 阻塞项
-- 通知 orchestrator：`send_message(task_blocked, reason="context_overflow")`
+- 通知 orchestrator：任务阻塞，原因=context_overflow
 
 **注入方式**：系统提示注入（Layer 1）
 
-**预警阈值**：当 max_turns 已使用 40% 时，在 HEARTBEAT 标注进度警告。
+**预警阈值**：当迭代预算已使用 40% 时，在 HEARTBEAT 标注进度警告。
 
 ---
 
@@ -80,7 +81,7 @@
   - 是否引入了新的风险或问题？
   - 上游依赖的信息是否正确使用？
 - 如果发现问题：立即修正，不要累积到最后
-- 如果发现无法解决的问题：send_message 通知 orchestrator
+- 如果发现无法解决的问题：通知 orchestrator
 
 **注入方式**：迭代边界回调
 
@@ -91,10 +92,10 @@
 **目的**：工具调用失败时遵循结构化恢复协议。
 
 **行为规范**：
-- 遇到失败时，先查阅 `shared/references/recovery-recipes.md`
+- 遇到失败时，先查阅 `pm-core/references/recovery-recipes.md`
 - 按对应配方的步骤执行
 - 最多重试 1 次
-- 恢复失败 → send_message 通知 orchestrator（附完整错误信息）
+- 恢复失败 → 通知 orchestrator（附完整错误信息）
 - 所有恢复尝试记录到 HEARTBEAT 的"遇到的问题"区
 
 **注入方式**：系统提示注入（Layer 1）
@@ -108,8 +109,8 @@
 **目的**：确保子Agent产出物与项目约束保持一致。
 
 **行为规范**：
-- 开始任务前：read_file 读取 `context_pool/goal.md` 的约束条件
-- 执行过程中：任何可能违反约束的操作（如使用被禁止的技术栈）必须先 send_message 请求 orchestrator 确认
+- 开始任务前：读取 `context_pool/goal.md` 的约束条件
+- 执行过程中：任何可能违反约束的操作（如使用被禁止的技术栈）必须先请求 orchestrator 确认
 - 完成时：自验证步骤中包含一致性检查
 - 发现不一致：立即修正，不可传递给下游
 
@@ -122,7 +123,7 @@
 orchestrator 可按任务调整默认技能的启用状态：
 
 ```yaml
-# 在 orchestrator 的 spawn 配置中
+# 在 orchestrator 的 Agent 创建配置中
 default_skills:
   pm-note-taking:          { enabled: true }
   pm-progress-tracker:     { enabled: true }

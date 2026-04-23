@@ -1,5 +1,6 @@
 # HEARTBEAT 模板规范
 
+> 路径变量和操作映射见 pm-core/platform-adapter.md。
 > 本文件定义了项目中 HEARTBEAT.md 的统一格式与使用规范。
 > 所有子Agent（pm-coder、pm-researcher、pm-writer）均须遵守此规范。
 
@@ -94,7 +95,7 @@ HEARTBEAT.md          ← 全局状态快照（看板式），所有Agent读写
 ## 2. 文件位置与命名
 
 ```
-{workspace}/.workbuddy/
+{context_root}/
 ├── HEARTBEAT.md                    ← 项目级HEARTBEAT（由orchestrator创建维护）
 ├── context_pool/
 │   ├── progress/
@@ -108,8 +109,8 @@ HEARTBEAT.md          ← 全局状态快照（看板式），所有Agent读写
 
 | 级别 | 文件 | 维护者 | 读者 |
 |------|------|--------|------|
-| **项目级** | `.workbuddy/HEARTBEAT.md` | pm-orchestrator | 所有Agent |
-| **任务级** | `.workbuddy/context_pool/progress/T{XXX}-heartbeat.md` | 对应子Agent | orchestrator + 同任务Agent |
+| **项目级** | `{context_root}/HEARTBEAT.md` | pm-orchestrator | 所有Agent |
+| **任务级** | `{context_root}/context_pool/progress/T{XXX}-heartbeat.md` | 对应子Agent | orchestrator + 同任务Agent |
 
 ---
 
@@ -217,6 +218,29 @@ HEARTBEAT.md          ← 全局状态快照（看板式），所有Agent读写
 > 每个子Agent在执行任务时，**必须**维护自己的任务级HEARTBEAT。
 
 ```markdown
+---
+# ═══════════════════════════════════════
+# HEARTBEAT v2 结构化元数据（机器可解析）
+# ═══════════════════════════════════════
+heartbeat_version: "2.0"
+trace_id: "{trace_id}"
+span_id: "{span_id}"
+task_id: "T{XXX}"
+agent: "{agent_name}"
+status: "running"                        # pending|running|blocked|completed|failed|handoff
+progress: 0                              # 0-100
+health_score: 100                        # 0-100
+context_level: "FULL"                    # MINIMAL|PARTIAL|FULL
+current_phase: "execute"                 # explore|approval_gate|execute
+started_at: "{YYYY-MM-DDTHH:mm:ssZ}"
+updated_at: "{YYYY-MM-DDTHH:mm:ssZ}"
+checkpoint_step: 0
+error_count: 0
+retry_count: 0
+risk_level: "low"                        # low|medium|high|critical
+turn_usage: "0/{max_turns}"
+---
+
 # Task Heartbeat — T{XXX}: {任务描述}
 
 > **负责Agent**: {agent名称}
@@ -324,28 +348,28 @@ HEARTBEAT.md          ← 全局状态快照（看板式），所有Agent读写
 | 更新自己的任务HEARTBEAT | ❌ | ✅写 | ✅写 | ✅写 |
 | 更新别人的任务HEARTBEAT | ✅写 | ❌ | ❌ | ❌ |
 
-> 🟡建议 = 通过 `send_message` 通知 orchestrator，由 orchestrator 代为更新
+> 🟡建议 = 通知 orchestrator，由 orchestrator 代为更新
 
 ### 5.2 更新时机
 
-| 事件 | 更新者 | 更新内容 | 工具 |
-|------|--------|---------|------|
-| 任务创建 | orchestrator | 看板新增行 | `replace_in_file` |
-| 任务开始执行 | 子Agent | 自己的状态: pending → running | `replace_in_file` 或通知 orchestrator |
-| 关键步骤完成 | 子Agent | 任务HEARTBEAT的执行进度 | `replace_in_file` |
-| 产出物生成 | 子Agent | 任务HEARTBEAT的产出物清单 | `replace_in_file` |
-| 遇到阻塞 | 子Agent | 任务HEARTBEAT的阻塞项 + 通知orchestrator | `replace_in_file` + `send_message` |
-| 任务完成 | 子Agent | 状态: running → completed + 通知orchestrator | `replace_in_file` + `send_message` |
-| orchestrator收到完成通知 | orchestrator | 项目HEARTBEAT看板更新 | `replace_in_file` |
-| 技术决策产生 | orchestrator | 决策记录表 | `replace_in_file` |
-| 风险发现 | 任何人 | 风险与问题表（通知orchestrator） | `send_message` → orchestrator更新 |
+| 事件 | 更新者 | 更新内容 |
+|------|--------|---------|
+| 任务创建 | orchestrator | 看板新增行 |
+| 任务开始执行 | 子Agent | 自己的状态: pending → running |
+| 关键步骤完成 | 子Agent | 任务HEARTBEAT的执行进度 |
+| 产出物生成 | 子Agent | 任务HEARTBEAT的产出物清单 |
+| 遇到阻塞 | 子Agent | 任务HEARTBEAT的阻塞项 + 通知orchestrator |
+| 任务完成 | 子Agent | 状态: running → completed + 通知orchestrator |
+| orchestrator收到完成通知 | orchestrator | 项目HEARTBEAT看板更新 |
+| 技术决策产生 | orchestrator | 决策记录表 |
+| 风险发现 | 任何人 | 风险与问题表（通知orchestrator更新） |
 
 ### 5.3 更新原则
 
 1. **原子更新**：每次只更新自己负责的部分，不要整文件重写
-2. **使用 replace_in_file**：定位到具体区域进行替换，避免覆盖他人内容
+2. **定位精确修改**：定位到具体区域进行替换，避免覆盖他人内容
 3. **更新后追加变更日志**：在"变更日志"区域追加一行
-4. **阻塞必须上报**：遇到阻塞时，除了更新自己的任务HEARTBEAT，还必须 `send_message` 给 orchestrator
+4. **阻塞必须上报**：遇到阻塞时，除了更新自己的任务HEARTBEAT，还必须通知 orchestrator
 5. **不要频繁更新**：关键节点更新即可（状态变更、步骤完成、产出物生成），不要每个小操作都更新
 
 ### 5.4 上下文压缩规则（强制执行）
@@ -394,18 +418,18 @@ HEARTBEAT.md          ← 全局状态快照（看板式），所有Agent读写
 
 ```
 Phase 4 (初始化)
-  └→ orchestrator: write_to_file 创建项目HEARTBEAT.md
+  └→ orchestrator: 创建项目HEARTBEAT.md
 
 Phase 5 (调度)
   └→ orchestrator: 更新HEARTBEAT看板，添加任务行
-  └→ 子Agent启动时: read_file 读取项目HEARTBEAT → 恢复全局上下文
-  └→ 子Agent启动时: write_to_file 创建自己的任务HEARTBEAT
+  └→ 子Agent启动时: 读取项目HEARTBEAT → 恢复全局上下文
+  └→ 子Agent启动时: 创建自己的任务HEARTBEAT
 
 Phase 6 (执行中)
-  └→ 子Agent: replace_in_file 更新自己任务HEARTBEAT的进度
-  └→ 子Agent完成时: send_message 通知 orchestrator + 更新任务HEARTBEAT状态
-  └→ orchestrator: replace_in_file 更新项目HEARTBEAT看板
-  └→ orchestrator: replace_in_file 更新决策记录 / 风险记录
+  └→ 子Agent: 更新自己任务HEARTBEAT的进度
+  └→ 子Agent完成时: 通知 orchestrator + 更新任务HEARTBEAT状态
+  └→ orchestrator: 更新项目HEARTBEAT看板
+  └→ orchestrator: 更新决策记录 / 风险记录
 
 Phase 6.5 (上下文压缩 — 随时可能触发)
   └→ 检测到上下文快满 → 立即将当前状态压缩写入HEARTBEAT
@@ -427,17 +451,17 @@ Phase 7 (整合)
 Agent 新会话启动
     │
     ▼
-Step 1: read_file 项目HEARTBEAT.md
+Step 1: 读取项目HEARTBEAT.md
     → 恢复信息：项目目标、技术栈、全局进度、已完成任务
     → 了解当前阶段：Phase几？下一步该做什么？
     │
     ▼
-Step 2: read_file 自己的任务HEARTBEAT（如果存在）
+Step 2: 读取自己的任务HEARTBEAT（如果存在）
     → 恢复信息：我做到哪了？产出了什么？遇到什么问题？
     → 检查：有没有未完成的步骤？有没有待解决的阻塞？
     │
     ▼
-Step 3: read_file 上游任务的HEARTBEAT（如果存在依赖）
+Step 3: 读取上游任务的HEARTBEAT（如果存在依赖）
     → 恢复信息：上游Agent的结论、决策、产出物路径
     → 确认：我需要的输入是否已经准备好？
     │

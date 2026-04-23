@@ -1,0 +1,16 @@
+# code-only 编排模板
+
+name: code-only
+description: "仅编码模式 — 直接改代码，不需要全流程"
+trigger_words: ["改Bug", "修Bug", "加功能", "重构代码", "写个函数", "改代码", "修个问题"]
+
+skills_required:
+  - pm-coder
+
+flow:
+  phase_1:
+    agent: pm-coder
+    input: user_instruction
+    context_level: MINIMAL
+    output: code_changes
+    deliver: "直接向用户汇报修改内容和影响范围"

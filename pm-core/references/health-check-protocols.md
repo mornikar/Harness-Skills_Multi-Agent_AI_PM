@@ -1,8 +1,9 @@
 # 健康检查协议（Health Check Protocols）
 
+> 路径变量和操作映射见 pm-core/platform-adapter.md。
 > 供 orchestrator 在执行健康检查时参考的详细协议。
 > 子 Agent 在发送 health_report 时也应遵循此规范。
-> 需要时通过 `read_file` 渐进加载。
+> 需要时通过「读取文件」渐进加载。
 
 ---
 
@@ -16,7 +17,7 @@ trigger: 子Agent状态为 RUNNING
 interval: 每次orchestrator轮询周期
 
 steps:
-  1. read_file 任务 HEARTBEAT
+  1. 读取任务 HEARTBEAT
      └─ 检查"最后更新"时间戳
      
   2. 计算时间差
@@ -25,7 +26,7 @@ steps:
   3. 判定结果
      ├─ elapsed < 5min  → 🟢 正常（无需动作）
      ├─ elapsed 5-15min → 🟡 关注（记录到风险追踪）
-     ├─ elapsed 15-30min → 🟠 预警（send_message 询问状态）
+     ├─ elapsed 15-30min → 🟠 预警（询问状态）
      └─ elapsed > 30min  → 🔴 异常（视为失联，触发崩溃恢复）
 ```
 
@@ -33,7 +34,7 @@ steps:
 
 ```yaml
 agent_unresponsive:
-  step_1: send_message(type="message", recipient="{agent}", content="健康检查：请报告当前状态")
+  step_1: 向该Agent发送消息："健康检查：请报告当前状态"
   step_2: 等待响应（最多 2 分钟）
   step_3:
     收到响应:
@@ -43,7 +44,7 @@ agent_unresponsive:
     未收到响应:
       - 标记任务状态为 INTERRUPTED
       - 从最近检查点恢复
-      - 重新 spawn 子Agent
+      - 重新创建子Agent
 ```
 
 ---
@@ -83,7 +84,7 @@ stall_detection:
     AND elapsed_since_previous > 10min
   
   action: |
-    1. send_message 询问当前卡在哪个步骤
+    1. 询问当前卡在哪个步骤
     2. 检查是否是阻塞（dependency_missing、tool_failure 等）
     3. 如确认停滞：
        - 分析停滞原因
@@ -118,7 +119,7 @@ quality_sampling:
 ```yaml
 general_quality_checks:
   - name: "文件存在性"
-    method: "read_file 检查 HEARTBEAT 产出物清单中的文件"
+    method: "检查 HEARTBEAT 产出物清单中的文件"
     pass: "文件存在且非空"
     fail: "文件缺失或为空 → 通知子Agent补充"
     
@@ -138,17 +139,17 @@ general_quality_checks:
 ```yaml
 coder_quality_checks:
   - name: "编译检查"
-    method: "execute_command 运行编译命令"
+    method: "运行编译命令"
     pass: "编译通过，无错误"
     fail: "编译失败 → 附错误信息通知子Agent修复"
     
   - name: "Lint检查"
-    method: "execute_command 运行 lint 工具"
+    method: "运行 lint 工具"
     pass: "0 errors，warnings < 10"
     fail: "超出阈值 → 通知子Agent修复"
     
   - name: "测试检查"
-    method: "execute_command 运行测试"
+    method: "运行测试"
     pass: "测试通过率 ≥ 80%"
     fail: "低于阈值 → 通知子Agent修复"
     
@@ -209,7 +210,7 @@ constraint_check:
   timing: "每次子Agent自验证时 + orchestrator验收时"
   
   steps:
-    1. read_file context_pool/goal.md → 提取所有 constraints
+    1. 读取 context_pool/goal.md → 提取所有 constraints
     
     2. 对每个 constraint 检查：
        hard_constraint:
@@ -255,27 +256,24 @@ common_constraints:
 ### 子Agent发送格式
 
 ```yaml
-# 子Agent通过 send_message 发送健康自检报告
+# 子Agent向 orchestrator 发送健康自检报告
 health_report:
-  type: "message"
-  recipient: "main"
-  summary: "{agent} 健康报告: {score}分"
-  content:
-    event_type: "health_report"
-    task_id: "T{XXX}"
-    agent_name: "{agent-role}"
-    timestamp: "{YYYY-MM-DD HH:mm}"
-    payload:
-      health_score: 85
-      factors:
-        progress_velocity: 0.9
-        heartbeat_freshness: 1.0
-        error_count: 0.8
-        constraint_compliance: 1.0
-      concerns: []              # 可为空
-      next_checkpoint: "预计完成核心功能实现（75%）"
-      completed_steps: 5
-      remaining_steps: 3
+  event_type: "health_report"
+  recipient: "orchestrator"
+  task_id: "T{XXX}"
+  agent_name: "{agent-role}"
+  timestamp: "{YYYY-MM-DD HH:mm}"
+  payload:
+    health_score: 85
+    factors:
+      progress_velocity: 0.9
+      heartbeat_freshness: 1.0
+      error_count: 0.8
+      constraint_compliance: 1.0
+    concerns: []              # 可为空
+    next_checkpoint: "预计完成核心功能实现（75%）"
+    completed_steps: 5
+    remaining_steps: 3
 ```
 
 ### orchestrator聚合格式
@@ -318,7 +316,7 @@ quality_gate:
   trigger: "子Agent到达预设里程碑检查点"
   
   steps:
-    1. read_file 检查 expected_output 文件是否存在
+    1. 检查 expected_output 文件是否存在
        └─ 不存在 → 阻止继续，要求子Agent先完成当前阶段
        
     2. 执行质量门禁命令（如定义了 quality_gate 命令）
@@ -326,10 +324,10 @@ quality_gate:
        └─ 门禁失败 → 附错误信息退回子Agent
        
     3. 更新 HEARTBEAT 里程碑状态
-       └─ replace_in_file 更新任务 HEARTBEAT 的进度区
+       └─ 修改任务 HEARTBEAT 的进度区
     
     4. 通知 orchestrator
-       └─ send_message(type="message", event_type="milestone_reached")
+       └─ 发送 milestone_reached 事件消息
 ```
 
 ### 里程碑跳过规则
@@ -347,7 +345,7 @@ milestone_skip:
   
   process: |
     如需跳过里程碑：
-    1. send_message(type="message", recipient="main")
+    1. 向 orchestrator 发送消息
     2. 说明跳过原因和建议
     3. orchestrator 评估后决定是否批准
     4. 批准 → 更新 HEARTBEAT 记录跳过决策

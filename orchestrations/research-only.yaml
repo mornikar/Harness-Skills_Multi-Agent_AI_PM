@@ -1,0 +1,16 @@
+# research-only 编排模板
+
+name: research-only
+description: "仅调研模式 — 技术选型、竞品分析、方案对比"
+trigger_words: ["调研", "选型", "对比方案", "竞品分析", "技术调研", "查文档", "评估方案"]
+
+skills_required:
+  - pm-researcher
+
+flow:
+  phase_1:
+    agent: pm-researcher
+    input: user_question
+    context_level: MINIMAL
+    output: research_report
+    deliver: "直接向用户交付结构化调研报告"

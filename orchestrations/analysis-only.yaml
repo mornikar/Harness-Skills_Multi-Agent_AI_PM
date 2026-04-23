@@ -1,0 +1,23 @@
+# analysis-only 编排模板
+
+name: analysis-only
+description: "仅需求分析 — 澄清需求+拆解任务（不编码）"
+trigger_words: ["梳理需求", "拆解任务", "做个规划", "分析需求", "需求分析"]
+
+skills_required:
+  - pm-analyst
+  - pm-planner
+
+flow:
+  phase_1:
+    agent: pm-analyst
+    input: user_requirements
+    context_level: MINIMAL
+    output: [product.md, requirements.md, goal.md]
+
+  phase_2:
+    agent: pm-planner
+    input: [goal.md, requirements.md]
+    context_level: PARTIAL
+    output: [tasks.md, modules.md, dependency-dag.md, batch-delivery-plan.md]
+    deliver: "向用户交付完整的需求文档+任务拆解"

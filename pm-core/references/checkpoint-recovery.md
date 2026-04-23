@@ -1,8 +1,9 @@
 # 检查点与崩溃恢复方案（Checkpoint & Crash Recovery）
 
+> 路径变量和操作映射见 pm-core/platform-adapter.md。
 > 供 orchestrator 在处理崩溃恢复时参考的详细方案。
 > 定义了检查点的创建、存储、恢复完整SOP。
-> 需要时通过 `read_file` 渐进加载。
+> 需要时通过「读取文件」渐进加载。
 
 ---
 
@@ -20,25 +21,25 @@ preconditions:
 
 steps:
   1. 读取当前状态
-     - read_file 项目 HEARTBEAT.md
-     - read_file 所有任务 HEARTBEAT（从项目看板获取路径列表）
+     - 读取项目 HEARTBEAT.md
+     - 读取所有任务 HEARTBEAT（从项目看板获取路径列表）
   
   2. 生成文件索引
      - 遍历 context_pool/ 目录
      - 记录每个文件的路径、大小、最后修改时间
   
   3. 组装检查点JSON
-     - 按检查点格式组装（参见 orchestrator-harness.md 检查点格式）
+     - 按检查点格式组装
      - 注入元信息：时间、触发原因、版本号
   
   4. 写入检查点文件
-     - write_to_file .workbuddy/checkpoints/project-phase{N}-v{seq}.json
+     - 创建文件 {context_root}/checkpoints/project-phase{N}-v{seq}.json
   
   5. 清理旧检查点
      - 如超出保留上限 → 删除最旧的检查点
   
   6. 记录
-     - replace_in_file 在项目 HEARTBEAT 变更日志追加
+     - 修改项目 HEARTBEAT 变更日志，追加记录
 ```
 
 ### 1.2 任务快照创建
@@ -48,10 +49,10 @@ protocol: create_task_checkpoint
 trigger: 子Agent到达里程碑 或 orchestrator主动创建
 
 steps:
-  1. read_file 目标任务 HEARTBEAT
+  1. 读取目标任务 HEARTBEAT
   2. 列出该任务的产出物（从 HEARTBEAT 产出物清单提取）
   3. 组装任务检查点JSON
-  4. write_to_file .workbuddy/checkpoints/task-{task_id}-v{seq}.json
+  4. 创建文件 {context_root}/checkpoints/task-{task_id}-v{seq}.json
   5. 清理旧版本（保留最新 5 个）
 ```
 
@@ -64,7 +65,7 @@ trigger: 关键决策记录到项目 HEARTBEAT 后
 steps:
   1. 从项目 HEARTBEAT 提取最新决策
   2. 快照决策前后的关键状态变化
-  3. write_to_file .workbuddy/checkpoints/decision-{d_id}.json
+  3. 创建文件 {context_root}/checkpoints/decision-{d_id}.json
 ```
 
 ---
@@ -74,7 +75,7 @@ steps:
 ### 2.1 目录结构
 
 ```
-.workbuddy/checkpoints/
+{context_root}/checkpoints/
 ├── project-phase4-v1.json       # Phase 4 完成时的项目快照
 ├── project-phase4-v2.json       # Phase 4 后期修正的项目快照
 ├── project-phase5-v1.json       # Phase 5 完成时的项目快照
@@ -125,8 +126,8 @@ size_limits:
 | **子Agent逻辑死循环** | 进度为0但HEARTBEAT频繁更新 | MEDIUM | 单任务 | MEDIUM |
 | **orchestrator会话中断** | 用户重新发起对话 | HIGH | 全项目 | MEDIUM |
 | **多Agent级联失败** | 多个子Agent同时FAILED | HIGH | 多任务 | HIGH |
-| **团队通道丢失** | send_message 连续失败 3 次 | HIGH | 全项目 | MEDIUM |
-| **文件系统异常** | read_file/write_to_file 失败 | CRITICAL | 全项目 | HIGH |
+| **团队通道丢失** | 消息连续发送失败 3 次 | HIGH | 全项目 | MEDIUM |
+| **文件系统异常** | 读取/写入文件失败 | CRITICAL | 全项目 | HIGH |
 
 ### 3.2 崩溃检测算法
 
@@ -169,7 +170,7 @@ trigger: 单子Agent崩溃检测
 steps:
   1. 诊断
      - 确定崩溃类型（参考崩溃类型矩阵）
-     - read_file 最近的任务检查点
+     - 读取最近的任务检查点
   
   2. 评估损失
      - 对比检查点中的进度 vs HEARTBEAT最后记录的进度
@@ -177,12 +178,12 @@ steps:
      - 评估是否可以恢复
   
   3. 恢复执行
-     - send_message(shutdown_request, recipient="{crashed_agent}")
+     - 向崩溃Agent发送关闭请求
      - 等待确认（30秒超时后强制继续）
      - 从检查点恢复任务 HEARTBEAT：
-       write_to_file(任务HEARTBEAT, content=检查点snapshot)
-     - 重新 spawn 子Agent：
-       task(prompt="{从检查点恢复的上下文}")
+       写入任务HEARTBEAT文件，内容为检查点snapshot
+     - 重新创建子Agent：
+       注入从检查点恢复的上下文
   
   4. 验证
      - 等待新子Agent创建 HEARTBEAT
@@ -206,8 +207,8 @@ steps:
      - 或用户明确说"继续上次的项目"
   
   2. 读取项目状态
-     - read_file .workbuddy/HEARTBEAT.md
-     - read_file .workbuddy/checkpoints/ 中最新的项目快照
+     - 读取 {context_root}/HEARTBEAT.md
+     - 读取 {context_root}/checkpoints/ 中最新的项目快照
      - 对比两者，以更完整者为准
   
   3. 重建上下文
@@ -216,7 +217,7 @@ steps:
        - 当前阶段
        - 各任务状态
        - 待处理决策
-     - read_file context_pool/ 关键文件补充细节
+     - 读取 context_pool/ 关键文件补充细节
   
   4. 评估并继续
      - 检查是否有 RUNNING 状态的子Agent
@@ -238,7 +239,7 @@ trigger: 多Agent级联失败 或 系统级异常
 steps:
   1. 紧急止损
      - 标记所有 RUNNING 任务为 INTERRUPTED
-     - 如团队通道仍可用 → broadcast 通知所有Agent暂停
+     - 如团队通道仍可用 → 广播通知所有Agent暂停
      - 如团队通道不可用 → 直接进入恢复
   
   2. 数据保全
@@ -252,11 +253,11 @@ steps:
      - 重写所有受影响任务的 HEARTBEAT
   
   4. 重建团队
-     - team_delete（清理残留）
-     - team_create（新建团队通道）
+     - 清理残留的团队通信通道
+     - 创建新的团队通信通道
   
   5. 逐步恢复任务
-     - 按依赖顺序重新 spawn 子Agent
+     - 按依赖顺序重新创建子Agent
      - 从检查点恢复每个任务的上下文
      - 每个恢复的任务执行存活检查
   
@@ -274,12 +275,12 @@ steps:
 ### 4.4 恢复后验证清单
 
 ```markdown
-## 恢复后必须确认的事项
+## 恢复后必须确认的事项：
 
 - [ ] 所有 INTERRUPTED 任务已恢复为 RUNNING 或 COMPLETED
 - [ ] 每个 RUNNING 任务的 HEARTBEAT 在正常更新
 - [ ] context_pool 文件索引与实际文件一致
-- [ ] 团队通信通道正常（send_message 可达）
+- [ ] 团队通信通道正常（消息可达）
 - [ ] Goal 的 constraints 无新增违规
 - [ ] 预算消耗在预期范围内
 - [ ] 下游任务不会被恢复影响（数据一致性）
@@ -306,7 +307,7 @@ trigger: orchestrator 决策 或 用户请求
 
 steps:
   1. 选择目标检查点
-     - list_dir .workbuddy/checkpoints/ → 列出可用检查点
+     - 列出 {context_root}/checkpoints/ 目录内容 → 可用检查点
      - 用户指定 或 orchestrator 推荐最近稳定检查点
   
   2. 预览影响
@@ -328,7 +329,7 @@ steps:
   
   5. 重建
      - 标记回滚后需要重新执行的任务
-     - 重新 spawn 子Agent
+     - 重新创建子Agent
   
   6. 记录
      - 在项目 HEARTBEAT 变更日志追加回滚记录
@@ -337,16 +338,16 @@ steps:
 
 ---
 
-## 6. 与 WorkBuddy 原生恢复的协作
+## 6. 与宿主平台原生恢复的协作
 
 ```yaml
 native_recovery_cooperation:
-  # WorkBuddy 的会话恢复机制（Session Recovery）是第一道防线
+  # 宿主平台的会话恢复机制是第一道防线
   # 本检查点机制是第二道防线
   
   # 协作规则：
   layer_1_native:
-    scope: "WorkBuddy 平台级别"
+    scope: "宿主平台级别"
     mechanism: "自动保存/恢复会话上下文"
     limitation: "依赖平台实现，不同环境行为可能不同"
     use_when: "子Agent单体会话中断（上下文满、超时）"
@@ -359,14 +360,14 @@ native_recovery_cooperation:
   
   # 协作流程：
   recovery_order: |
-    1. 首先尝试 WorkBuddy 原生恢复（最快）
+    1. 首先尝试宿主平台原生恢复（最快）
     2. 原生恢复失败或不完整 → 读取检查点补充
     3. 检查点也无法恢复 → 人工介入（第三道防线）
     
   # 设计原则：
   design_principle: |
     "不信任单一恢复路径"。
-    即使 WorkBuddy 恢复成功，orchestrator 也应对比
+    即使宿主平台恢复成功，orchestrator 也应对比
     HEARTBEAT 验证恢复完整性。
     检查点机制确保系统具备自力更生的恢复能力。
 ```

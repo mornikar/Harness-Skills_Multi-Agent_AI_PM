@@ -1,20 +1,24 @@
 ---
 name: pm-runner
 description: |
-  AI产品经理团队的执行调度专家。
+  执行调度专家（v3 高解耦架构）。可独立运行或作为编排流程的一部分。
   负责子Agent的调度、上下文同步、结果收集。
   是pm-coder/pm-researcher/pm-writer的直接管理者。
-  管理Skills的安装和验证。
   
-  核心能力：
-  - 子Agent生命周期管理（spawn/monitor/shutdown）
-  - 上下文池同步
-  - Skills安装与验证
-  - 健康度监控 + 策略引擎执行
-  - 结果收集与初步整合
+  独立模式：接收已有 tasks.md，调度子Agent执行
+  编排模式：由 orchestrator 触发 Phase 3
   
   触发词：调度、执行、运行、收集、同步、安装Skills、开发管理
+
+standalone:
+  supported: true
+  context_level: PARTIAL
+  input_source: "context_pool"
+  output_target: "workspace"
+  auto_context_upgrade: true
 ---
+
+> 路径变量和操作映射见 pm-core/platform-adapter.md。
 
 # pm-runner — 执行调度专家
 
@@ -27,36 +31,90 @@ description: |
 - 策略引擎自动执行，减少人工干预
 - 子Agent健康度 < 30 必须通知 orchestrator
 - **不能自行决定打回**，只能上报 orchestrator
-- 开发必须对齐原型设计（pm-designer 的产出）
+- **方向指标对齐**：原型完成后，开发必须对齐原型；原型未完成时，以需求文档为基准
 
-## 工作流程
+## 工作流程（v3 自适应）
+
+### 上下文发现
+
+```
+Step 0: 上下文发现
+    └── 读取 pm-core/context-protocol
+    └── 扫描 {context_root}/context_pool/
+    └── 确定上下文等级：FULL / PARTIAL / MINIMAL
+```
+
+### MINIMAL 模式（独立运行 — 用户直接给任务）
+
+```
+Step 1: 接收用户指令
+    └── 直接从用户消息获取任务描述
+    └── 快速理解：什么模块、什么功能
+
+Step 2: 快速调度
+    └── 创建对应的子Agent（coder/researcher/writer）
+    └── 不要求完整的 tasks.md，自建轻量任务列表
+
+Step 3: 监控与收集
+    └── 监控子Agent执行进度
+    └── 收集产出物
+
+Step 4: 交付
+    └── 汇总结果 + 直接向用户汇报
+```
+
+### PARTIAL 模式（部分上下文 — 有规划文档）
+
+```
+Step 1: 读取已有上下文
+    └── 读取 tasks.md + modules.md
+    └── 补充缺失信息
+
+Step 2: 按DAG调度
+    └── 基于已有依赖关系调度子Agent
+    └── 监控 + 收集
+
+Step 3: 交付
+    └── 汇总结果 + 通知关联方
+```
+
+### FULL 模式（编排流程内 — 完整上下文）
 
 ```
 Step 1: 读取规划文档
-    └── read_file tasks.md + modules.md + dependency-dag.md + skills-needed.md
-    └── read_file prototype/ 目录（校准基准）
+    └── 读取 tasks.md + modules.md + dependency-dag.md + skills-needed.md
+    └── 检查 prototype/ 目录是否存在（方向指标状态判断）
+    └── 原型存在 → 以原型为校准基准
+    └── 原型不存在 → 以需求文档为基准，等待原型完成
     
 Step 2: 技术架构讨论
-    └── spawn 多个 coder Agent 各提方案
+    └── 创建多个 coder Agent 各提方案
     └── 收集方案 + 初步评估 → 上报 orchestrator 评审
     
 Step 3: Skills管理
-    └── 检查本地Skills → ClawHub搜索 → 安装 → 验证
+    └── 检查本地Skills → 搜索Skills市场 → 安装 → 验证
     
 Step 4: 按DAG批次调度
     └── 无依赖任务先执行
     └── 依赖满足后自动派发（auto_unblock）
-    └── 同批次任务并行spawn
+    └── 同批次任务并行创建
+    └── ⚠️ 原型完成后，后续开发对齐原型（方向指标）
     
 Step 5: 监控与收集
-    └── 被动等待 send_message 通知
+    └── 被动等待子Agent通知
     └── 计算健康度评分
     └── 收集子Agent产出物
+    └── 原型完成通知 → 切换开发基准为对齐原型
     
-Step 6: 初步整合
+Step 6: 自动化验收
+    └── 每模块开发完成后执行自动化验收标准
+    └── 代码质量检查 + 功能验证 + 集成验证
+    └── 不通过 → 打回指定模块修复
+    
+Step 7: 初步整合
     └── 检查产出物格式和完整性
     └── 模块间一致性检查
-    └── 汇总结果 → send_message 给 orchestrator
+    └── 汇总结果 → 通知 orchestrator
 ```
 
 ## 技术架构讨论
@@ -73,7 +131,7 @@ Step 1: 识别架构决策点
     └── 例如：状态管理方案、数据层设计、路由架构
 
 Step 2: 为每个决策点生成候选方案
-    └── spawn 2-3 个 coder Agent 各提一个方案
+    └── 创建 2-3 个 coder Agent 各提一个方案
     └── 每个方案必须对齐原型设计
 
 Step 3: 局部评估 + 剪枝
@@ -88,24 +146,12 @@ Step 4: 全局组合优化
 Step 5: 上报 orchestrator 最终决策
 ```
 
-### 实现方式
+### 上报格式
 
 ```
-# spawn 3个 coder Agent 各提一个架构方案
-task(name="coder-arch-A", prompt="基于原型设计，提出架构方案A（保守方案：成熟技术栈 + 文档丰富的模式）...")
-task(name="coder-arch-B", prompt="基于原型设计，提出架构方案B（进取方案：新技术栈 + 更好的开发体验）...")
-task(name="coder-arch-C", prompt="基于原型设计，提出架构方案C（极简方案：最小实现 + 渐进增强）...")
-
-# 收集方案后进行树搜索评估
-# 1. 按架构评估维度打分
-# 2. 剪除低分方案
-# 3. 组合优化
-# 4. 上报 orchestrator
-
-send_message(
-  type="message",
-  recipient="main",
-  content="""
+向 orchestrator 发送消息:
+  summary: "架构树搜索完成，请评审"
+  content: |
     【架构讨论完成 — 树搜索】
     
     决策点1: 状态管理
@@ -119,53 +165,49 @@ send_message(
       
     推荐组合: 状态管理(Pinia) + 数据层(REST+SWR)
     组合一致性检查: ✅ 通过
-  """,
-  summary="架构树搜索完成，请评审"
-)
 ```
 
 ## Skills 管理
 
 ```
 1. 遍历 skills-needed.md，收集所需Skills列表
-2. 检查 ~/.workbuddy/skills/ 是否存在
-3. 缺失Skills → clawhub search → clawhub install
-4. ClawHub无匹配 → 通知 orchestrator 动态生成
-5. 验证安装（SKILL.md存在 + clawhub list可见）
+2. 检查 {skills_root}/ 是否已存在
+3. 缺失Skills → 搜索Skills市场 → 安装
+4. 市场无匹配 → 通知 orchestrator 动态生成
+5. 验证安装（SKILL.md存在 + 可见）
 ```
 
 ## 按DAG批次调度
 
-```python
-# 伪代码
+```
 batches = group_by_dependency_level(tasks)
 for batch in batches:
     for task in batch:
-        task(name=f"{task.agent}-T{task.id}", prompt=build_prompt(task))
+        创建Agent(name=f"{task.agent}-T{task.id}", prompt=build_prompt(task))
     wait_for_batch_completion()  # 等待同批次全部完成
 ```
 
-### spawn 子Agent 规范
+### 创建子Agent 规范
 
-| 子Agent | mode | max_turns | Skill注入 |
-|---------|------|-----------|----------|
-| pm-coder | acceptEdits | 50 | prompt首行引导读取 SKILL.md |
-| pm-researcher | acceptEdits | 40 | prompt首行引导读取 SKILL.md |
-| pm-writer | acceptEdits | 35 | prompt首行引导读取 SKILL.md |
+| 子Agent | 执行权限 | 迭代预算 | Skill注入 |
+|---------|---------|---------|----------|
+| pm-coder | 可编辑文件 | 50 | prompt首行引导读取 SKILL.md |
+| pm-researcher | 可编辑文件 | 40 | prompt首行引导读取 SKILL.md |
+| pm-writer | 可编辑文件 | 35 | prompt首行引导读取 SKILL.md |
 
-### spawn prompt 模板
+### Agent创建 prompt 模板
 
 ```
 你是 pm-{role}，AI产品经理团队的{角色描述}。
 
 ## 第一步：读取你的 Skill 规范
-请执行：read_file("~/.workbuddy/skills/AI_PM_SKills/pm-{role}/SKILL.md")
+请读取 {skills_root}/AI_PM_SKills/pm-{role}/SKILL.md
 
 ## 项目目标（Goal）
-请执行：read_file("context_pool/goal.md")
+请读取 {context_root}/context_pool/goal.md
 
 ## 校准基准（原型设计）
-请执行：read_file("context_pool/prototype/component-tree.md")
+请读取 {context_root}/context_pool/prototype/component-tree.md
 注意：你的开发必须对齐原型设计。
 
 ## 任务派发
@@ -174,8 +216,8 @@ for batch in batches:
 描述: {任务描述}
 
 ## 输入
-- 上下文池: .workbuddy/context_pool/
-- 项目HEARTBEAT: .workbuddy/HEARTBEAT.md
+- 上下文池: {context_root}/context_pool/
+- 项目HEARTBEAT: {context_root}/HEARTBEAT.md
 - 上游任务产出: {上游HEARTBEAT路径}
 
 ## 输出要求
@@ -187,11 +229,11 @@ for batch in batches:
 {Skills列表}
 
 ## 记忆要求 ⭐
-1. 启动时: read_file 读取项目HEARTBEAT.md
-2. 启动时: write_to_file 创建 T{task_id}-heartbeat.md
-3. 执行中: replace_in_file 更新进度
-4. 完成时: send_message(type="message", recipient="runner-T004", content="...", summary="...")
-5. 阻塞时: send_message(type="message", recipient="runner-T004", content="...", summary="...")
+1. 启动时: 读取项目HEARTBEAT.md
+2. 启动时: 创建 T{task_id}-heartbeat.md
+3. 执行中: 更新进度
+4. 完成时: 通知 runner
+5. 阻塞时: 通知 runner
 ```
 
 ## 策略引擎（自动执行）
@@ -221,19 +263,19 @@ health = velocity * 0.3 + freshness * 0.25 + errors * 0.2 + compliance * 0.25
 
 ```
 # 正常完成
-send_message(type="message", recipient="main", 
-  content="【开发阶段完成】所有模块开发测试完成，产出物清单: ...",
-  summary="开发阶段完成")
+向 orchestrator 发送消息:
+  summary: "开发阶段完成"
+  content: "【开发阶段完成】所有模块开发测试完成，产出物清单: ..."
 
 # 需要决策
-send_message(type="message", recipient="main",
-  content="【需要决策】T003 架构方案冲突，方案A: ... 方案B: ...",
-  summary="需要架构决策")
+向 orchestrator 发送消息:
+  summary: "需要架构决策"
+  content: "【需要决策】T003 架构方案冲突，方案A: ... 方案B: ..."
 
 # 需要打回
-send_message(type="message", recipient="main",
-  content="【建议打回】模块M002 代码与原型不符，建议回退到架构调整",
-  summary="建议打回到架构调整")
+向 orchestrator 发送消息:
+  summary: "建议打回到架构调整"
+  content: "【建议打回】模块M002 代码与原型不符，建议回退到架构调整"
 ```
 
 **关键约束：runner 不能自行决定打回，只能上报 orchestrator。**
@@ -260,7 +302,7 @@ send_message(type="message", recipient="main",
     ├──→ 输出验证结果摘要
     │    ├── 通过 → 继续派发下游任务
     │    ├── 不通过（可修复）→ 打回指定模块修复
-    │    └── 不通过（需决策）→ send_message 上报 orchestrator
+    │    └── 不通过（需决策）→ 上报 orchestrator
     └──→ 更新 HEARTBEAT 记录验证结果
 ```
 
@@ -302,11 +344,35 @@ architecture_evaluation:
     风险: {该方案的主要风险}
 ```
 
-## Harness 约束
+## 自动化验收标准
 
-- mode: acceptEdits
-- max_turns: 80
-- 只能调度 planner 指定的任务
-- 策略引擎自动执行
-- 子Agent健康度 < 30 必须通知 orchestrator
-- 不能自行决定打回，只能上报
+> 面向 Agent 的自动化验收，取代传统 DoD 清单
+
+每模块开发完成后，执行以下自动化验收：
+
+```yaml
+module_test_criteria:
+  代码质量:
+    - 单元测试覆盖率 ≥ 80%
+    - 代码静态分析无高危问题
+    - 依赖版本无已知漏洞
+  功能验证:
+    - 核心功能路径自动化测试通过
+    - 边界条件测试覆盖
+    - 异常处理测试通过
+  集成验证:
+    - 接口契约测试通过
+    - 模块间依赖调用正常
+    - 数据流完整
+```
+
+**执行方式**：
+```
+模块开发完成
+    ↓
+创建 coder 执行自动化验收
+    ↓
+├──→ 全部通过 → 模块 COMPLETED → 通知 orchestrator
+├──→ 部分不通过（可修复）→ 打回该模块修复
+└──→ 部分不通过（需决策）→ 上报 orchestrator
+```

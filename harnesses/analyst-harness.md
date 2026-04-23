@@ -1,6 +1,28 @@
-# Analyst Harness 定义
+# Analyst Harness 定义（v3.1 Ironforge 重构版）
 
 > pm-analyst 需求澄清专家的执行载体。
+> v3.1 变革：继承 harnesses/base/ 公共层，只保留 analyst 特化逻辑。
+
+---
+
+## 版本与继承
+
+```yaml
+harness_version: "2.0"
+compatible_skill_version: ">=3.0"
+compatible_framework: "Ironforge v1.0"
+
+inherits:
+  - base/permission-framework.md
+  - base/security-hooks.md
+  - base/audit-logging.md
+  - base/checkpoint-protocol.md
+  - base/handoff-protocol.md
+  - base/context-engineering.md
+  - base/observability-config.md
+```
+
+---
 
 ## 基本配置
 
@@ -14,31 +36,49 @@ runtime: default
 max_turns: 25
 ```
 
-## 可用工具
+---
 
-| 工具 | 用途 | 权限 |
-|------|------|------|
-| `read_file` | 读取上下文池文件 | 只读 |
-| `write_to_file` | 创建需求文档 | 受限（仅 context_pool/ 目录） |
-| `search_content` | 搜索已有信息 | 只读 |
-| `send_message` | 通知 orchestrator | 全权 |
-
-## 工具限制
+## 特化配置
 
 ```yaml
-tools:
-  allowed:
-    - read_file
-    - write_to_file
-    - search_content
-    - send_message
-  restricted:
-    - execute_command    # 不执行命令
-    - replace_in_file    # 不修改已有文件（只创建新文件）
-    - image_gen          # 不生成图片
+specialization:
+  permission_override:
+    explore_phase_only: true
+    mode: "default"
+    allowed_extra: [write_to_file]        # 允许创建分析文档
+    blocked_tools: [execute_command, replace_in_file, delete_file]
+    max_turns: 25
+
+  security_override: {}
+
+  audit_override:
+    additional_events:
+      - event_type: goal_created
+        detail: {goal_id, success_criteria_count, constraints_count}
+
+  # v3.1 P1 稳定性覆盖
+  checkpoint_override:
+    frequency: "verification_only"
+    retention: "verification_only"
+    rollback_strategy: "reverse_only"
+
+  circuit_breaker_override:
+    agent_level:
+      failure_threshold: 3
+      window: "30min"
+    task_level:
+      retry_budget: 3
+
+  idempotency_override:
+    write_to_file:
+      always_check_exists: true
 ```
 
-## 约束
+---
+
+## Analyst 特有规范
+
+### 约束
 
 ```yaml
 constraints:
@@ -48,7 +88,7 @@ constraints:
   - "硬约束必须有明确的违规后果描述"
 ```
 
-## 推理验证点
+### 推理验证点
 
 ```yaml
 reasoning_checkpoint:
@@ -62,7 +102,7 @@ reasoning_checkpoint:
   failure_action: "追加追问轮次"
 ```
 
-## 协作奖励模型（Analyst 行为指导）
+### 协作奖励模型
 
 ```yaml
 reward_alignment:
@@ -75,18 +115,6 @@ reward_alignment:
     - "遗漏约束导致开发阶段返工"
 ```
 
-## 三层 Prompt 洋葱模型
+---
 
-```
-Layer 1 — Identity:
-  你是 pm-analyst，需求澄清专家。
-  成功标准: 需求文档完整、无歧义、可被 planner 直接消费。
-  约束: 只产出需求文档，不产出代码。
-
-Layer 2 — Narrative:
-  从 HEARTBEAT + context_pool 动态构建项目状态。
-
-Layer 3 — Focus:
-  当前任务: 澄清用户需求 "{用户原始输入}"
-  输出: product.md + requirements.md + goal.md
-```
+*Analyst Harness v2.1 (Ironforge P1) — 2026-04-24*

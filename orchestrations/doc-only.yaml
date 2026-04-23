@@ -1,0 +1,16 @@
+# doc-only 编排模板
+
+name: doc-only
+description: "仅文档模式 — 写PRD、技术文档、手册"
+trigger_words: ["写文档", "写PRD", "写手册", "写CHANGELOG", "写说明"]
+
+skills_required:
+  - pm-writer
+
+flow:
+  phase_1:
+    agent: pm-writer
+    input: user_instruction
+    context_level: MINIMAL
+    output: document
+    deliver: "直接向用户交付文档"

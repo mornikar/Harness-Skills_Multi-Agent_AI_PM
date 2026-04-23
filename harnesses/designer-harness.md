@@ -1,6 +1,28 @@
-# Designer Harness 定义
+# Designer Harness 定义（v3.1 Ironforge 重构版）
 
 > pm-designer 原型设计专家的执行载体。
+> v3.1 变革：继承 harnesses/base/ 公共层，只保留 designer 特化逻辑。
+
+---
+
+## 版本与继承
+
+```yaml
+harness_version: "2.0"
+compatible_skill_version: ">=3.0"
+compatible_framework: "Ironforge v1.0"
+
+inherits:
+  - base/permission-framework.md
+  - base/security-hooks.md
+  - base/audit-logging.md
+  - base/checkpoint-protocol.md
+  - base/handoff-protocol.md
+  - base/context-engineering.md
+  - base/observability-config.md
+```
+
+---
 
 ## 基本配置
 
@@ -14,33 +36,50 @@ runtime: acceptEdits
 max_turns: 35
 ```
 
-## 可用工具
+---
 
-| 工具 | 用途 | 权限 |
-|------|------|------|
-| `read_file` | 读取需求和模块文档 | 只读 |
-| `write_to_file` | 创建原型文件 | 受限（仅 context_pool/prototype/ 目录） |
-| `replace_in_file` | 修改原型文件 | 受限（仅 context_pool/prototype/ 目录） |
-| `search_content` | 搜索已有信息 | 只读 |
-| `image_gen` | 生成UI mockup | 全权 |
-| `send_message` | 通知 orchestrator | 全权 |
-
-## 工具限制
+## 特化配置
 
 ```yaml
-tools:
-  allowed:
-    - read_file
-    - write_to_file
-    - replace_in_file
-    - search_content
-    - image_gen
-    - send_message
-  restricted:
-    - execute_command    # 不执行命令
+specialization:
+  permission_override:
+    execute_phase:
+      green_add: [image_gen]
+      blocked_tools: [delete_file, execute_command]
+      max_turns: 35
+
+  security_override: {}
+
+  audit_override:
+    additional_events:
+      - event_type: prototype_created
+        detail: {component_count, page_count, coverage_percent}
+
+  # v3.1 P1 稳定性覆盖
+  checkpoint_override:
+    frequency: "every_step"
+    retention: "all"
+    rollback_strategy: "git_first"
+
+  circuit_breaker_override:
+    agent_level:
+      failure_threshold: 3
+      window: "30min"
+    task_level:
+      retry_budget: 3
+
+  idempotency_override:
+    write_to_file:
+      always_check_exists: true
+    image_gen:
+      pre_check: "检查图片文件是否已生成 → 跳过"
 ```
 
-## 约束
+---
+
+## Designer 特有规范
+
+### 约束
 
 ```yaml
 constraints:
@@ -52,7 +91,7 @@ constraints:
   - "核心交互流程有 ≥2 种可行方案时，必须输出多方案对比"
 ```
 
-## 推理验证点
+### 推理验证点
 
 ```yaml
 reasoning_checkpoints:
@@ -74,37 +113,19 @@ reasoning_checkpoints:
     failure_action: "收集反馈 → 调整原型"
 ```
 
-## 多方案设计触发
-
-```yaml
-multi_design_triggers:
-  - "核心交互流程有 ≥2 种可行方案"
-  - "用户对 UI 布局没有明确偏好"
-  - "功能模块间有 ≥2 种组织方式"
-```
-
-## 协作奖励模型（Designer 行为指导）
-
-```yaml
-reward_alignment:
-  high_score_behaviors:
-    - "原型覆盖所有模块，coder 无需追问功能细节"
-    - "组件树定义清晰，coder 可直接映射到代码结构"
-    - "交互流程完整，测试用例可从流程图直接推导"
-  low_score_behaviors:
-    - "原型遗漏模块导致 coder 开发方向偏离"
-    - "交互流程不完整导致测试阶段发现功能缺失"
-```
-
-## 原型自检钩子
+### 原型自检钩子
 
 ```yaml
 hooks:
   on_complete:
     - name: "覆盖度检查"
-      check: "原型页面/组件 是否覆盖 modules.md 中的所有模块"
+      check: "原型页面/组件是否覆盖 modules.md 中的所有模块"
       action: "缺失 → 补充原型"
     - name: "命名检查"
-      check: "组件名是否语义化（非 Component1/Box1 等泛化名）"
+      check: "组件名是否语义化"
       action: "不通过 → 重命名"
 ```
+
+---
+
+*Designer Harness v2.1 (Ironforge P1) — 2026-04-24*

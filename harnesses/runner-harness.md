@@ -1,7 +1,29 @@
-# Runner Harness 定义
+# Runner Harness 定义（v3.1 Ironforge 重构版）
 
 > pm-runner 执行调度专家的执行载体。
+> v3.1 变革：继承 harnesses/base/ 公共层，只保留 runner 特化逻辑。
 > 继承了旧 orchestrator 的大部分调度工具，但决策权上交 orchestrator。
+
+---
+
+## 版本与继承
+
+```yaml
+harness_version: "2.0"
+compatible_skill_version: ">=3.0"
+compatible_framework: "Ironforge v1.0"
+
+inherits:
+  - base/permission-framework.md
+  - base/security-hooks.md
+  - base/audit-logging.md
+  - base/checkpoint-protocol.md
+  - base/handoff-protocol.md
+  - base/context-engineering.md
+  - base/observability-config.md
+```
+
+---
 
 ## 基本配置
 
@@ -16,7 +38,77 @@ runtime: acceptEdits
 max_turns: 80
 ```
 
-## 可用工具
+---
+
+## 特化配置
+
+```yaml
+specialization:
+  permission_override:
+    execute_phase:
+      green_add: [task, team_create, team_delete]
+      yellow_tools: [write_to_file, replace_in_file]
+      blocked_tools: [delete_file]
+      command_whitelist: [clawhub]
+      max_turns: 80
+
+  security_override:
+    protected_paths:
+      read_write:
+        add: ["package.json"]
+
+  audit_override:
+    additional_events:
+      - event_type: agent_spawned
+        detail: {agent_type, task_id, mode}
+      - event_type: skill_installed
+        detail: {skill_name, version}
+      - event_type: strategy_triggered
+        detail: {strategy_name, condition, action}
+
+  # ═══════════════════════════════════════
+  # 检查点覆盖（v3.1 P1 稳定性）
+  # ═══════════════════════════════════════
+  checkpoint_override:
+    frequency: "every_step"
+    retention: "minimal"
+    rollback_strategy: "git_first"
+
+  # ═══════════════════════════════════════
+  # 熔断覆盖（v3.1 P1 稳定性）
+  # ═══════════════════════════════════════
+  circuit_breaker_override:
+    agent_level:
+      failure_threshold: 2                 # runner失败影响大，阈值更低
+      window: "20min"
+      cooldown_base: "20min"
+    task_level:
+      retry_budget: 3
+      backoff: "exponential"
+    # runner 特有：子Agent熔断监听
+    sub_agent_breaker_monitor:
+      enabled: true
+      action: "子Agent熔断时立即通知 orchestrator"
+
+  # ═══════════════════════════════════════
+  # 幂等性覆盖（v3.1 P1 稳定性）
+  # ═══════════════════════════════════════
+  idempotency_override:
+    agent_spawn:
+      pre_check: "检查同一 task_id 的 Agent 是否已存在"
+      strategy: "已存在 → 跳过spawn，直接查询状态"
+    task_dispatch:
+      pre_check: "检查任务是否已派发"
+      strategy: "已派发 → 查询当前状态而非重新派发"
+    command_pre_check:
+      clawhub_install: "检查 skill 是否已安装 → 跳过"
+```
+
+---
+
+## Runner 特有规范
+
+### 1. 可用工具
 
 | 工具 | 用途 | 权限 |
 |------|------|------|
@@ -30,7 +122,7 @@ max_turns: 80
 | `execute_command` | 执行 clawhub CLI | 受限（仅 clawhub） |
 | `search_content` | 搜索信息 | 只读 |
 
-## 约束
+### 2. 约束
 
 ```yaml
 constraints:
@@ -41,7 +133,7 @@ constraints:
   - "开发必须对齐原型设计（pm-designer 的产出）"
 ```
 
-## 推理验证点
+### 3. 推理验证点
 
 ```yaml
 reasoning_checkpoints:
@@ -64,7 +156,7 @@ reasoning_checkpoints:
     failure_action: "打回该模块修复"
 ```
 
-## 策略引擎
+### 4. 策略引擎
 
 ```yaml
 policies:
@@ -75,49 +167,43 @@ policies:
 
   auto_recover:
     trigger: "子Agent FAILED"
-    action: "按恢复配方恢复（shared/references/recovery-recipes.md）"
+    action: "按恢复配方恢复"
     condition: "失败类型可恢复 且 尝试次数 < 2"
 
   budget_warning:
     trigger: "项目总轮次 > max_turns 的 80%"
     action: "通知 orchestrator 预算即将耗尽"
-    condition: "当前轮次 / max_turns > 0.8"
 
   health_alert:
     trigger: "子Agent健康度 < 30"
     action: "立即通知 orchestrator"
-    condition: "health_score < 30"
 
   constraint_escalate:
     trigger: "子Agent输出违反硬约束"
     action: "立即通知 orchestrator，不自动恢复"
-    condition: "constraint_type == hard"
 ```
 
-## 健康度监控
+### 5. 子Agent Spawn 配置
 
 ```yaml
-health_monitoring:
-  factors:
-    - name: progress_velocity
-      weight: 0.3
-    - name: heartbeat_freshness
-      weight: 0.25
-    - name: error_count
-      weight: 0.2
-    - name: constraint_compliance
-      weight: 0.25
-
-  thresholds:
-    healthy: 75
-    attention: 50
-    warning: 30
-    critical: 0
+spawn_config:
+  pm-coder:
+    mode: acceptEdits
+    max_turns: 50
+    subagent_name: code-explorer
+    
+  pm-researcher:
+    mode: acceptEdits
+    max_turns: 40
+    subagent_name: code-explorer
+    
+  pm-writer:
+    mode: acceptEdits
+    max_turns: 35
+    subagent_name: code-explorer
 ```
 
-## 恢复配方（继承自旧 orchestrator）
-
-runner 继承旧 orchestrator 的结构化恢复机制：
+### 6. 恢复配方
 
 ```yaml
 recovery_recipes:
@@ -137,10 +223,6 @@ recovery_recipes:
     action: "分析错误 → 等待后重试"
     auto_recoverable: true
     
-  network_timeout:
-    action: "等待后重试"
-    auto_recoverable: true
-    
   skill_missing:
     action: "通知 orchestrator 补装"
     auto_recoverable: false
@@ -148,32 +230,9 @@ recovery_recipes:
   build_failure:
     action: "分析错误 → 修复代码"
     auto_recoverable: true
-    
-  permission_denied:
-    action: "通知 orchestrator 人工介入"
-    auto_recoverable: false
 ```
 
-## 事件驱动通信协议
-
-runner 与 orchestrator 和子Agent之间的消息采用结构化事件格式：
-
-```yaml
-message_envelope:
-  type: "message" | "broadcast"
-  recipient: "main" | "{agent-name}"
-  summary: "一句话摘要"
-  content:
-    event_type: "task_complete" | "task_progress" | "task_blocked" | "task_failed" | "task_partial_success" | "recovery_attempt" | "decision_request" | "kickback_suggestion" | "health_alert"
-    task_id: "T{XXX}"
-    agent_name: "{agent-role}"
-    timestamp: "{YYYY-MM-DD HH:mm}"
-    payload: {类型特定数据}
-```
-
-## 上报协议
-
-runner 与 orchestrator 的通信通过 send_message：
+### 7. 上报协议
 
 ```yaml
 report_types:
@@ -191,22 +250,6 @@ report_types:
     when: "子Agent健康度 < 30"
 ```
 
-## 子Agent Spawn 配置
+---
 
-```yaml
-spawn_config:
-  pm-coder:
-    mode: acceptEdits
-    max_turns: 50
-    subagent_name: code-explorer
-    
-  pm-researcher:
-    mode: acceptEdits
-    max_turns: 40
-    subagent_name: code-explorer
-    
-  pm-writer:
-    mode: acceptEdits
-    max_turns: 35
-    subagent_name: code-explorer
-```
+*Runner Harness v2.1 (Ironforge P1) — 2026-04-24*
